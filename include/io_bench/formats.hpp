@@ -94,4 +94,54 @@ public:
     std::string extension() const override { return ".mmap"; }
 };
 
+/// Zarr format (placeholder)
+class ZarrFormat : public FormatAdapter {
+public:
+    std::string name() const override { return "zarr"; }
+    bool is_available() const override;
+    void write(const std::string& path, const float* data, const ArrayShape& shape) override;
+    void read(const std::string& path, float* data, const ArrayShape& shape) override;
+    std::string extension() const override { return ".zarr"; }
+};
+
+/// Parquet format (placeholder)
+class ParquetFormat : public FormatAdapter {
+public:
+    std::string name() const override { return "parquet"; }
+    bool is_available() const override;
+    void write(const std::string& path, const float* data, const ArrayShape& shape) override;
+    void read(const std::string& path, float* data, const ArrayShape& shape) override;
+    std::string extension() const override { return ".parquet"; }
+};
+
+/// SEG-Y format (placeholder)
+class SegyFormat : public FormatAdapter {
+public:
+    std::string name() const override { return "segy"; }
+    bool is_available() const override;
+    void write(const std::string& path, const float* data, const ArrayShape& shape) override;
+    void read(const std::string& path, float* data, const ArrayShape& shape) override;
+    std::string extension() const override { return ".segy"; }
+};
+
+/// TensorStore format (placeholder)
+class TensorStoreFormat : public FormatAdapter {
+public:
+    std::string name() const override { return "tensorstore"; }
+    bool is_available() const override;
+    void write(const std::string& path, const float* data, const ArrayShape& shape) override;
+    void read(const std::string& path, float* data, const ArrayShape& shape) override;
+    std::string extension() const override { return ".tstore"; }
+};
+
+/// MDIO format (placeholder)
+class MdioFormat : public FormatAdapter {
+public:
+    std::string name() const override { return "mdio"; }
+    bool is_available() const override;
+    void write(const std::string& path, const float* data, const ArrayShape& shape) override;
+    void read(const std::string& path, float* data, const ArrayShape& shape) override;
+    std::string extension() const override { return ".mdio"; }
+};
+
 } // namespace io_bench

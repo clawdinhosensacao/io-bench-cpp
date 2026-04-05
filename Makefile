@@ -35,7 +35,7 @@ CXXFLAGS += -I third_party/json/include -I third_party/cnpy
 SRCS = src/benchmark.cpp src/report.cpp src/formats.cpp \
        src/formats/binary.cpp src/formats/npy.cpp src/formats/json.cpp \
        src/formats/hdf5.cpp src/formats/netcdf.cpp src/formats/tiledb.cpp \
-       src/formats/adios2.cpp \
+       src/formats/adios2.cpp src/formats/extra.cpp \
        third_party/cnpy/cnpy.cpp
 
 build/io_bench: build fetch-deps $(SRCS) src/main.cpp
@@ -75,4 +75,16 @@ NETCDF_EXISTS := $(shell test -f $(HDF5_PREFIX)/include/netcdf.h && echo yes)
 ifeq ($(NETCDF_EXISTS),yes)
 CXXFLAGS += -DHAVE_NETCDF -I$(HDF5_PREFIX)/include
 LDFLAGS += -L$(HDF5_PREFIX)/lib -lnetcdf
+endif
+
+TILEDB_EXISTS := $(shell test -f $(HDF5_PREFIX)/include/tiledb/tiledb && echo yes)
+ifeq ($(TILEDB_EXISTS),yes)
+CXXFLAGS += -DHAVE_TILEDB -I$(HDF5_PREFIX)/include
+LDFLAGS += -L$(HDF5_PREFIX)/lib -ltiledb
+endif
+
+ADIOS2_EXISTS := $(shell test -f $(HDF5_PREFIX)/include/adios2_c.h && echo yes)
+ifeq ($(ADIOS2_EXISTS),yes)
+CXXFLAGS += -DHAVE_ADIOS2 -I$(HDF5_PREFIX)/include
+LDFLAGS += -L$(HDF5_PREFIX)/lib -ladios2
 endif

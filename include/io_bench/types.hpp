@@ -25,6 +25,7 @@ struct BenchResult {
 struct BenchConfig {
     std::size_t nx = 100;          ///< Grid size X
     std::size_t nz = 80;           ///< Grid size Z
+    std::size_t ny = 1;            ///< Grid size Y (for 3D, default 1)
     std::size_t iterations = 1;    ///< Number of iterations
     std::string output_dir = ".";  ///< Output directory for test files
     bool warmup = true;            ///< Run warmup iteration before timing
@@ -34,10 +35,13 @@ struct BenchConfig {
 struct ArrayShape {
     std::size_t nx;
     std::size_t nz;
+    std::size_t ny = 1;  // For 3D arrays
     
-    std::size_t total() const { return nx * nz; }
+    std::size_t total() const { return nx * nz * ny; }
     std::size_t bytes() const { return total() * sizeof(float); }
     double mb() const { return static_cast<double>(bytes()) / (1024.0 * 1024.0); }
+    
+    bool is_3d() const { return ny > 1; }
 };
 
 /// Timer helper class

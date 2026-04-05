@@ -17,21 +17,26 @@ bool NetcdfFormat::is_available() const {
 
 void NetcdfFormat::write(const std::string& path, const float* data, const ArrayShape& shape) {
 #ifdef HAVE_NETCDF
-    int ncid, z_dimid, x_dimid, varid;
-    int dimids[2];
-    
+    int ncid;
     if (nc_create(path.c_str(), NC_CLOBBER, &ncid) != NC_NOERR) {
         throw std::runtime_error("Failed to create NetCDF file: " + path);
     }
     
+    int z_dimid, x_dimid, y_dimid;
     nc_def_dim(ncid, "z", shape.nz, &z_dimid);
     nc_def_dim(ncid, "x", shape.nx, &x_dimid);
     
-    dimids[0] = z_dimid;
-    dimids[1] = x_dimid;
-    nc_def_var(ncid, "velocity", NC_FLOAT, 2, dimids, &varid);
-    nc_enddef(ncid);
+    int varid;
+    if (shape.is_3d()) {
+        nc_def_dim(ncid, "y", shape.ny, &y_dimid);
+        int dimids[3] = {y_dimid, z_dimid, x_dimid};
+        nc_def_var(ncid, "velocity", NC_FLOAT, 3, dimids, &varid);
+    } else {
+        int dimids[2] = {z_dimid, x_dimid};
+        nc_def_var(ncid, "velocity", NC_FLOAT, 2, dimids, &varid);
+    }
     
+    nc_enddef(ncid);
     nc_put_var_float(ncid, varid, data);
     nc_close(ncid);
 #else
@@ -52,13 +57,20 @@ void NetcdfFormat::read(const std::string& path, float* data, const ArrayShape& 
     
     nc_inq_varid(ncid, "velocity", &varid);
     
-    size_t z_len, x_len;
-    int dimids[2];
-    nc_inq_vardimid(ncid, varid, dimids);
-    nc_inq_dimlen(ncid, dimids[0], &z_len);
-    nc_inq_dimlen(ncid, dimids[1], &x_len);
+    int ndims;
+    nc_inq_varndims(ncid, varid, &ndims);
     
-    if (z_len != shape.nz || x_len != shape.nx) {
+    int dimids[3];
+    nc_inq_vardimid(ncid, varid, dimids);
+    
+    size_t z_len, x_len, y_len = 1;
+    nc_inq_dimlen(ncid, dimids[ndims - 2], &z_len);
+    nc_inq_dimlen(ncid, dimids[ndims - 1], &x_len);
+    if (ndims == 3) {
+        nc_inq_dimlen(ncid, dimids[0], &y_len);
+    }
+    
+    if (z_len != shape.nz || x_len != shape.nx || y_len != shape.ny) {
         nc_close(ncid);
         throw std::runtime_error("NetCDF variable shape mismatch");
     }

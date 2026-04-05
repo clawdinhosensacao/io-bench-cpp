@@ -48,7 +48,7 @@ BenchResult BenchmarkRunner::run_single(FormatAdapter& adapter) {
         return result;
     }
     
-    ArrayShape shape{config_.nx, config_.nz};
+    ArrayShape shape{config_.nx, config_.nz, config_.ny};
     auto data = generate_data(shape);
     std::vector<float> read_buffer(shape.total());
     
@@ -139,6 +139,13 @@ std::vector<std::unique_ptr<FormatAdapter>> create_all_adapters() {
     adapters.push_back(std::make_unique<NetcdfFormat>());
     adapters.push_back(std::make_unique<TileDBFormat>());
     adapters.push_back(std::make_unique<Adios2Format>());
+    
+    // Future formats (placeholders)
+    adapters.push_back(std::make_unique<ZarrFormat>());
+    adapters.push_back(std::make_unique<ParquetFormat>());
+    adapters.push_back(std::make_unique<SegyFormat>());
+    adapters.push_back(std::make_unique<TensorStoreFormat>());
+    adapters.push_back(std::make_unique<MdioFormat>());
     
     return adapters;
 }

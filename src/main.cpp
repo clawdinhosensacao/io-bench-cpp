@@ -11,6 +11,7 @@ void print_usage(const char* prog) {
               << "Options:\n"
               << "  --nx <n>           Grid size in X (default: 100)\n"
               << "  --nz <n>           Grid size in Z (default: 80)\n"
+              << "  --ny <n>           Grid size in Y for 3D (default: 1)\n"
               << "  --iterations <n>   Number of iterations (default: 1)\n"
               << "  --output <path>    Output markdown report path\n"
               << "  --help             Show this message\n";
@@ -41,6 +42,8 @@ int main(int argc, char* argv[]) {
             config.nx = std::stoul(get_value());
         } else if (arg == "--nz") {
             config.nz = std::stoul(get_value());
+        } else if (arg == "--ny") {
+            config.ny = std::stoul(get_value());
         } else if (arg == "--iterations") {
             config.iterations = std::stoul(get_value());
         } else if (arg == "--output") {
@@ -53,7 +56,11 @@ int main(int argc, char* argv[]) {
     
     std::cout << "I/O Format Benchmark (C++)\n";
     std::cout << "===========================\n";
-    std::cout << "Grid: " << config.nx << " x " << config.nz << "\n";
+    if (config.ny > 1) {
+        std::cout << "Grid: " << config.nx << " x " << config.nz << " x " << config.ny << " (3D)\n";
+    } else {
+        std::cout << "Grid: " << config.nx << " x " << config.nz << "\n";
+    }
     std::cout << "Iterations: " << config.iterations << "\n\n";
     
     // Create runner and add formats

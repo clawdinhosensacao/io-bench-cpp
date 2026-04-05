@@ -1,8 +1,11 @@
 #include "io_bench/formats.hpp"
 #include <stdexcept>
+#include <cstring>
+#include <cstdint>
+#include <cstdlib>
 
 #ifdef HAVE_TILEDB
-#include <tiledb/tiledb>
+#include <tiledb/tiledb.h>
 #endif
 
 namespace io_bench {
@@ -17,29 +20,82 @@ bool TileDBFormat::is_available() const {
 
 void TileDBFormat::write(const std::string& path, const float* data, const ArrayShape& shape) {
 #ifdef HAVE_TILEDB
-    using namespace tiledb;
+    tiledb_ctx_t* ctx = nullptr;
+    tiledb_ctx_alloc(nullptr, &ctx);
     
-    Context ctx;
+    // Remove existing array directory if it exists
+    // Note: TileDB requires a fresh directory for array creation
+    std::string cmd = "rm -rf " + path;
+    system(cmd.c_str());
     
-    // Create array schema
-    ArraySchema schema(ctx, TILEDB_DENSE);
+    // Create dimensions - note: tile_extent can be NULL for default
+    tiledb_dimension_t* z_dim = nullptr;
+    int64_t z_ext[] = {0, static_cast<int64_t>(shape.nz - 1)};
+    tiledb_dimension_alloc(ctx, "z", TILEDB_INT64, z_ext, nullptr, &z_dim);
     
-    Domain domain(ctx);
-    domain.add_dim(Dimension::create<uint64_t>(ctx, "z", {0, shape.nz - 1}));
-    domain.add_dim(Dimension::create<uint64_t>(ctx, "x", {0, shape.nx - 1}));
-    schema.set_domain(domain);
+    tiledb_dimension_t* x_dim = nullptr;
+    int64_t x_ext[] = {0, static_cast<int64_t>(shape.nx - 1)};
+    tiledb_dimension_alloc(ctx, "x", TILEDB_INT64, x_ext, nullptr, &x_dim);
     
-    Attribute attr = Attribute::create<float>(ctx, "velocity");
-    schema.add_attribute(attr);
+    // Create domain
+    tiledb_domain_t* domain = nullptr;
+    tiledb_domain_alloc(ctx, &domain);
+    tiledb_domain_add_dimension(ctx, domain, z_dim);
+    tiledb_domain_add_dimension(ctx, domain, x_dim);
     
-    Array::create(path, schema);
+    // Create attribute
+    tiledb_attribute_t* attr = nullptr;
+    tiledb_attribute_alloc(ctx, "velocity", TILEDB_FLOAT32, &attr);
     
-    // Write data
-    Array array(ctx, path, TILEDB_WRITE);
-    Query query(ctx, array);
-    query.set_data_buffer("velocity", const_cast<float*>(data), shape.total());
-    query.submit();
-    array.close();
+    // Create schema
+    tiledb_array_schema_t* schema = nullptr;
+    tiledb_array_schema_alloc(ctx, TILEDB_DENSE, &schema);
+    tiledb_array_schema_set_domain(ctx, schema, domain);
+    tiledb_array_schema_add_attribute(ctx, schema, attr);
+    
+    // Create array
+    tiledb_array_create(ctx, path.c_str(), schema);
+    
+    // Open array for writing
+    tiledb_array_t* array = nullptr;
+    tiledb_array_alloc(ctx, path.c_str(), &array);
+    tiledb_array_open(ctx, array, TILEDB_WRITE);
+    
+    // Create subarray for dense write
+    tiledb_subarray_t* subarray = nullptr;
+    tiledb_subarray_alloc(ctx, array, &subarray);
+    int64_t z_start = 0, z_end = static_cast<int64_t>(shape.nz - 1);
+    int64_t x_start = 0, x_end = static_cast<int64_t>(shape.nx - 1);
+    tiledb_subarray_add_range(ctx, subarray, 0, &z_start, &z_end, nullptr);
+    tiledb_subarray_add_range(ctx, subarray, 1, &x_start, &x_end, nullptr);
+    
+    // Create query
+    tiledb_query_t* query = nullptr;
+    tiledb_query_alloc(ctx, array, TILEDB_WRITE, &query);
+    tiledb_query_set_layout(ctx, query, TILEDB_ROW_MAJOR);
+    tiledb_query_set_subarray_t(ctx, query, subarray);
+    
+    // Set data buffer
+    uint64_t size = shape.total() * sizeof(float);
+    tiledb_query_set_data_buffer(ctx, query, "velocity", (void*)data, &size);
+    
+    // Submit query
+    tiledb_query_submit(ctx, query);
+    tiledb_query_finalize(ctx, query);
+    
+    // Close array
+    tiledb_array_close(ctx, array);
+    
+    // Cleanup
+    tiledb_subarray_free(&subarray);
+    tiledb_query_free(&query);
+    tiledb_array_free(&array);
+    tiledb_array_schema_free(&schema);
+    tiledb_attribute_free(&attr);
+    tiledb_domain_free(&domain);
+    tiledb_dimension_free(&z_dim);
+    tiledb_dimension_free(&x_dim);
+    tiledb_ctx_free(&ctx);
 #else
     (void)path;
     (void)data;
@@ -50,15 +106,44 @@ void TileDBFormat::write(const std::string& path, const float* data, const Array
 
 void TileDBFormat::read(const std::string& path, float* data, const ArrayShape& shape) {
 #ifdef HAVE_TILEDB
-    using namespace tiledb;
+    tiledb_ctx_t* ctx = nullptr;
+    tiledb_ctx_alloc(nullptr, &ctx);
     
-    Context ctx;
-    Array array(ctx, path, TILEDB_READ);
+    // Open array for reading
+    tiledb_array_t* array = nullptr;
+    tiledb_array_alloc(ctx, path.c_str(), &array);
+    tiledb_array_open(ctx, array, TILEDB_READ);
     
-    Query query(ctx, array);
-    query.set_data_buffer("velocity", data, shape.total());
-    query.submit();
-    array.close();
+    // Create subarray for dense read
+    tiledb_subarray_t* subarray = nullptr;
+    tiledb_subarray_alloc(ctx, array, &subarray);
+    int64_t z_start = 0, z_end = static_cast<int64_t>(shape.nz - 1);
+    int64_t x_start = 0, x_end = static_cast<int64_t>(shape.nx - 1);
+    tiledb_subarray_add_range(ctx, subarray, 0, &z_start, &z_end, nullptr);
+    tiledb_subarray_add_range(ctx, subarray, 1, &x_start, &x_end, nullptr);
+    
+    // Create query
+    tiledb_query_t* query = nullptr;
+    tiledb_query_alloc(ctx, array, TILEDB_READ, &query);
+    tiledb_query_set_layout(ctx, query, TILEDB_ROW_MAJOR);
+    tiledb_query_set_subarray_t(ctx, query, subarray);
+    
+    // Set data buffer
+    uint64_t size = shape.total() * sizeof(float);
+    tiledb_query_set_data_buffer(ctx, query, "velocity", data, &size);
+    
+    // Submit query
+    tiledb_query_submit(ctx, query);
+    tiledb_query_finalize(ctx, query);
+    
+    // Close array
+    tiledb_array_close(ctx, array);
+    
+    // Cleanup
+    tiledb_subarray_free(&subarray);
+    tiledb_query_free(&query);
+    tiledb_array_free(&array);
+    tiledb_ctx_free(&ctx);
 #else
     (void)path;
     (void)data;

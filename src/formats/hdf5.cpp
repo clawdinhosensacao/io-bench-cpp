@@ -22,8 +22,14 @@ void Hdf5Format::write(const std::string& path, const float* data, const ArraySh
         throw std::runtime_error("Failed to create HDF5 file: " + path);
     }
     
-    hsize_t dims[2] = {shape.nz, shape.nx};
-    hid_t dataspace = H5Screate_simple(2, dims, nullptr);
+    hid_t dataspace;
+    if (shape.is_3d()) {
+        hsize_t dims[3] = {shape.ny, shape.nz, shape.nx};
+        dataspace = H5Screate_simple(3, dims, nullptr);
+    } else {
+        hsize_t dims[2] = {shape.nz, shape.nx};
+        dataspace = H5Screate_simple(2, dims, nullptr);
+    }
     
     hid_t dataset = H5Dcreate2(file, "/velocity", H5T_NATIVE_FLOAT, dataspace,
                                 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -55,10 +61,18 @@ void Hdf5Format::read(const std::string& path, float* data, const ArrayShape& sh
     }
     
     hid_t dataspace = H5Dget_space(dataset);
-    hsize_t dims[2];
+    int ndims = H5Sget_simple_extent_ndims(dataspace);
+    hsize_t dims[3];
     H5Sget_simple_extent_dims(dataspace, dims, nullptr);
     
-    if (dims[0] != shape.nz || dims[1] != shape.nx) {
+    bool shape_ok = false;
+    if (shape.is_3d() && ndims == 3) {
+        shape_ok = (dims[0] == shape.ny && dims[1] == shape.nz && dims[2] == shape.nx);
+    } else if (!shape.is_3d() && ndims == 2) {
+        shape_ok = (dims[0] == shape.nz && dims[1] == shape.nx);
+    }
+    
+    if (!shape_ok) {
         H5Sclose(dataspace);
         H5Dclose(dataset);
         H5Fclose(file);

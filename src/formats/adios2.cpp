@@ -1,8 +1,9 @@
 #include "io_bench/formats.hpp"
 #include <stdexcept>
+#include <cstring>
 
 #ifdef HAVE_ADIOS2
-#include <adios2.h>
+#include <adios2_c.h>
 #endif
 
 namespace io_bench {
@@ -17,17 +18,23 @@ bool Adios2Format::is_available() const {
 
 void Adios2Format::write(const std::string& path, const float* data, const ArrayShape& shape) {
 #ifdef HAVE_ADIOS2
-    adios2::ADIOS adios;
-    adios2::IO io = adios.DeclareIO("writer");
+    adios2_adios* adios = adios2_init(ADIOS2_DEBUG_MODE_ON);
+    
+    adios2_io* io = adios2_declare_io(adios, "io_bench");
     
     // Define variable
-    adios2::Dims dims = {shape.nz, shape.nx};
-    auto var = io.DefineVariable<float>("velocity", dims);
+    size_t dims[2] = {shape.nz, shape.nx};
+    adios2_variable* var = adios2_define_variable(io, "velocity", adios2_type_float,
+                                                   2, dims, adios2_constant_dims,
+                                                   nullptr, nullptr, nullptr);
     
-    // Open file and write
-    adios2::Engine engine = io.Open(path, adios2::Mode::Write);
-    engine.Put(var, data);
-    engine.Close();
+    // Open engine and write
+    adios2_engine* engine = adios2_open(io, path.c_str(), adios2_mode_write);
+    
+    adios2_put(engine, var, data, adios2_mode_deferred);
+    
+    adios2_close(engine);
+    adios2_finalize(adios);
 #else
     (void)path;
     (void)data;
@@ -38,24 +45,32 @@ void Adios2Format::write(const std::string& path, const float* data, const Array
 
 void Adios2Format::read(const std::string& path, float* data, const ArrayShape& shape) {
 #ifdef HAVE_ADIOS2
-    adios2::ADIOS adios;
-    adios2::IO io = adios.DeclareIO("reader");
+    adios2_adios* adios = adios2_init(ADIOS2_DEBUG_MODE_ON);
     
-    adios2::Engine engine = io.Open(path, adios2::Mode::Read);
+    adios2_io* io = adios2_declare_io(adios, "io_bench");
     
-    // Get variable info
-    auto var = io.InquireVariable<float>("velocity");
+    adios2_engine* engine = adios2_open(io, path.c_str(), adios2_mode_read);
+    
+    adios2_variable* var = adios2_inquire_variable(io, "velocity");
     if (!var) {
-        throw std::runtime_error("ADIOS2: variable 'velocity' not found");
+        adios2_close(engine);
+        adios2_finalize(adios);
+        throw std::runtime_error("ADIOS2 variable 'velocity' not found");
     }
     
-    auto dims = var.Shape();
-    if (dims.size() != 2 || dims[0] != shape.nz || dims[1] != shape.nx) {
-        throw std::runtime_error("ADIOS2: shape mismatch");
+    // Check shape
+    size_t dims[2];
+    adios2_variable_shape(var, dims);
+    if (dims[0] != shape.nz || dims[1] != shape.nx) {
+        adios2_close(engine);
+        adios2_finalize(adios);
+        throw std::runtime_error("ADIOS2 variable shape mismatch");
     }
     
-    engine.Get(var, data);
-    engine.Close();
+    adios2_get(engine, var, data, adios2_mode_sync);
+    
+    adios2_close(engine);
+    adios2_finalize(adios);
 #else
     (void)path;
     (void)data;
