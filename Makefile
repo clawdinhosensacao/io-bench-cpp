@@ -39,7 +39,7 @@ SRCS = src/benchmark.cpp src/report.cpp src/formats.cpp \
        third_party/cnpy/cnpy.cpp
 
 build/io_bench: build fetch-deps $(SRCS) src/main.cpp
-	$(CXX) $(CXXFLAGS) $(SRCS) src/main.cpp -lz -o $@
+	$(CXX) $(CXXFLAGS) $(SRCS) src/main.cpp -lz $(LDFLAGS) -o $@
 
 build/io_bench_tests: build fetch-deps $(SRCS) $(GTEST_DIR)
 	$(CXX) $(CXXFLAGS) -I $(GTEST_DIR)/googletest/include \
@@ -47,7 +47,7 @@ build/io_bench_tests: build fetch-deps $(SRCS) $(GTEST_DIR)
 		$(GTEST_DIR)/googletest/src/gtest-all.cc \
 		$(GTEST_DIR)/googletest/src/gtest_main.cc \
 		-I $(GTEST_DIR)/googletest \
-		-lz -lpthread -o $@
+		-lz $(LDFLAGS) -lpthread -o $@
 
 test: build/io_bench_tests
 	./build/io_bench_tests
@@ -63,15 +63,16 @@ bench-fast: build/io_bench
 clean:
 	rm -rf build artifacts
 
-# Optional format support detection
-HAVE_HDF5 := $(shell pkg-config --exists hdf5 && echo yes)
-ifeq ($(HAVE_HDF5),yes)
-CXXFLAGS += -DHAVE_HDF5 $(shell pkg-config --cflags hdf5)
-LDFLAGS += $(shell pkg-config --libs hdf5)
+# Optional format support detection (linuxbrew paths)
+HDF5_PREFIX := /home/linuxbrew/.linuxbrew
+HDF5_EXISTS := $(shell test -f $(HDF5_PREFIX)/include/hdf5.h && echo yes)
+ifeq ($(HDF5_EXISTS),yes)
+CXXFLAGS += -DHAVE_HDF5 -I$(HDF5_PREFIX)/include
+LDFLAGS += -L$(HDF5_PREFIX)/lib -lhdf5 -lhdf5_hl
 endif
 
-HAVE_NETCDF := $(shell pkg-config --exists netcdf && echo yes)
-ifeq ($(HAVE_NETCDF),yes)
-CXXFLAGS += -DHAVE_NETCDF $(shell pkg-config --cflags netcdf)
-LDFLAGS += $(shell pkg-config --libs netcdf)
+NETCDF_EXISTS := $(shell test -f $(HDF5_PREFIX)/include/netcdf.h && echo yes)
+ifeq ($(NETCDF_EXISTS),yes)
+CXXFLAGS += -DHAVE_NETCDF -I$(HDF5_PREFIX)/include
+LDFLAGS += -L$(HDF5_PREFIX)/lib -lnetcdf
 endif

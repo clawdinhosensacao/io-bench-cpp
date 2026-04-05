@@ -21,22 +21,36 @@ Previous benchmark work in Python (rtm3d-cli) provided valuable insights, but C+
 
 ### Test Configuration
 
-| Parameter | Value |
-|-----------|-------|
-| Grid size | 400 × 300 float32 |
-| Data size | 0.458 MB |
-| Iterations | 5 |
+| Parameter | Small | Medium | Large |
+|-----------|-------|--------|-------|
+| Grid size | 80×100 | 400×300 | 800×600 |
+| Data size | 0.031 MB | 0.458 MB | 1.83 MB |
+| Iterations | 3 | 5 | 10 |
 | Compiler | g++ -O3 -std=c++20 |
 
-### Throughput Results
+### Throughput Results (Medium: 400×300 float32)
 
 | Format | Write MB/s | Read MB/s | Size (MB) | Notes |
 |--------|-----------|-----------|-----------|-------|
-| **binary_header** | 253.7 | **4690.3** | 0.458 | Best read throughput |
-| **mmap** | 96.2 | 2989.2 | 0.458 | Zero-copy, OS-managed |
-| **npy** | 232.4 | 2503.7 | 0.458 | NumPy native, portable |
-| **binary_f32** | **281.9** | 1567.7 | 0.458 | Simplest, no header |
-| **json** | 63.6 | 32.4 | 1.914 | 4.2× size overhead |
+| **binary_header** | 260.5 | **6428.8** | 0.458 | Best read throughput |
+| **mmap** | 283.3 | 3609.9 | 0.458 | Zero-copy, OS-managed |
+| **npy** | **299.3** | 3298.9 | 0.458 | NumPy native, portable |
+| **binary_f32** | 279.6 | 1891.3 | 0.458 | Simplest, no header |
+| **hdf5** | 239.3 | 1672.3 | 0.460 | Self-describing, metadata |
+| **netcdf** | 138.2 | 613.5 | 0.458 | CF conventions |
+| **json** | 69.5 | 41.5 | 1.914 | 4.2× size overhead |
+
+### Throughput Results (Large: 800×600 float32)
+
+| Format | Write MB/s | Read MB/s | Notes |
+|--------|-----------|-----------|-------|
+| **mmap** | 412.0 | 4587.6 | Best write, excellent read |
+| **npy** | 398.8 | 3107.0 | Balanced performance |
+| **binary_f32** | 383.3 | 1537.7 | Simple, fast write |
+| **binary_header** | 366.8 | 6213.0 | Best read overall |
+| **hdf5** | 365.0 | 4597.6 | Excellent read, metadata |
+| **netcdf** | 215.6 | 1286.5 | Slower, but portable |
+| **json** | 68.9 | 44.9 | 50× slower than binary |
 
 ### Key Observations
 
@@ -49,14 +63,17 @@ Previous benchmark work in Python (rtm3d-cli) provided valuable insights, but C+
 
 | Format | C++ Read MB/s | Python Read MB/s | Speedup |
 |--------|--------------|------------------|---------|
-| binary_f32 | 1567.7 | 309.0 | **5.1×** |
-| npy | 2503.7 | 88.0 | **28.5×** |
-| json | 32.4 | 27.0 | 1.2× |
+| binary_f32 | 1537.7 | 309.0 | **5.0×** |
+| npy | 3107.0 | 88.0 | **35.3×** |
+| hdf5 | 1672.3 | 23.0 | **72.7×** |
+| netcdf | 613.5 | 27.0 | **22.7×** |
+| json | 44.9 | 27.0 | 1.7× |
 
-C++ implementation shows dramatic improvements for binary and NPY formats due to:
+C++ implementation shows dramatic improvements for binary and scientific formats due to:
 - Direct memory access without Python object creation
 - No NumPy array allocation overhead
 - Compiler optimizations (SIMD, loop unrolling)
+- Lower-level C library bindings (HDF5, NetCDF C APIs)
 
 ## Format Recommendations
 
@@ -158,24 +175,28 @@ float* data = arr.data<float>();
 
 ## Performance Characteristics
 
-### Read Throughput Hierarchy
+### Read Throughput Hierarchy (800×600)
 
 ```
-binary_header:  ████████████████████████████████████████████ 4690 MB/s
-mmap:           ████████████████████████████████ 2989 MB/s
-npy:            ████████████████████████████ 2504 MB/s
-binary_f32:     ████████████████████ 1568 MB/s
-json:           █ 32 MB/s
+binary_header:  ████████████████████████████████████████████ 6213 MB/s
+mmap:           ████████████████████████████████████ 4588 MB/s
+hdf5:           ████████████████████████████████████ 4598 MB/s
+npy:            ████████████████████████████ 3107 MB/s
+binary_f32:     ████████████████ 1538 MB/s
+netcdf:         ████████████ 1287 MB/s
+json:           █ 45 MB/s
 ```
 
-### Write Throughput Hierarchy
+### Write Throughput Hierarchy (800×600)
 
 ```
-binary_f32:     ████████████████████████████████████ 282 MB/s
-binary_header:  ████████████████████████████████ 254 MB/s
-npy:            ████████████████████████████ 232 MB/s
-mmap:           ████████████ 96 MB/s
-json:           ████████ 64 MB/s
+mmap:           ████████████████████████████████████ 412 MB/s
+npy:            ████████████████████████████████ 399 MB/s
+binary_f32:     ██████████████████████████████ 383 MB/s
+binary_header:  ██████████████████████████████ 367 MB/s
+hdf5:           ██████████████████████████████ 365 MB/s
+netcdf:         ████████████████████ 216 MB/s
+json:           ██████ 69 MB/s
 ```
 
 ### Storage Efficiency
@@ -190,15 +211,16 @@ json:           █████████████████████�
 
 ## Adoption Roadmap
 
-### Phase 1: Core Formats (Immediate)
+### Phase 1: Core Formats ✅ COMPLETE
 - [x] Implement `binary_f32` read/write
 - [x] Implement `binary_header` with metadata
 - [x] Implement `mmap` zero-copy reader
 - [x] Implement `npy` format via cnpy
+- [x] Implement `json` format via nlohmann/json
 
-### Phase 2: Scientific Formats (Near-term)
-- [ ] Add HDF5 support (HighFive library)
-- [ ] Add NetCDF support (netcdf-cxx4)
+### Phase 2: Scientific Formats ✅ COMPLETE
+- [x] Add HDF5 support (C API)
+- [x] Add NetCDF support (C API)
 - [ ] Add SEG-Y support (segyio-cpp or custom)
 
 ### Phase 3: Cloud/HPC Formats (Future)

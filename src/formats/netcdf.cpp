@@ -2,8 +2,7 @@
 #include <stdexcept>
 
 #ifdef HAVE_NETCDF
-#include <netcdf>
-using namespace netCDF;
+#include <netcdf.h>
 #endif
 
 namespace io_bench {
@@ -18,18 +17,23 @@ bool NetcdfFormat::is_available() const {
 
 void NetcdfFormat::write(const std::string& path, const float* data, const ArrayShape& shape) {
 #ifdef HAVE_NETCDF
-    NcFile file(path, NcFile::replace);
+    int ncid, z_dimid, x_dimid, varid;
+    int dimids[2];
     
-    // Define dimensions
-    NcDim zDim = file.addDim("z", shape.nz);
-    NcDim xDim = file.addDim("x", shape.nx);
+    if (nc_create(path.c_str(), NC_CLOBBER, &ncid) != NC_NOERR) {
+        throw std::runtime_error("Failed to create NetCDF file: " + path);
+    }
     
-    // Define variable
-    std::vector<NcDim> dims = {zDim, xDim};
-    NcVar var = file.addVar("velocity", ncFloat, dims);
+    nc_def_dim(ncid, "z", shape.nz, &z_dimid);
+    nc_def_dim(ncid, "x", shape.nx, &x_dimid);
     
-    // Write data
-    var.putVar(data);
+    dimids[0] = z_dimid;
+    dimids[1] = x_dimid;
+    nc_def_var(ncid, "velocity", NC_FLOAT, 2, dimids, &varid);
+    nc_enddef(ncid);
+    
+    nc_put_var_float(ncid, varid, data);
+    nc_close(ncid);
 #else
     (void)path;
     (void)data;
@@ -40,15 +44,27 @@ void NetcdfFormat::write(const std::string& path, const float* data, const Array
 
 void NetcdfFormat::read(const std::string& path, float* data, const ArrayShape& shape) {
 #ifdef HAVE_NETCDF
-    NcFile file(path, NcFile::read);
-    NcVar var = file.getVar("velocity");
+    int ncid, varid;
     
-    std::vector<NcDim> dims = var.getDims();
-    if (dims.size() != 2 || dims[0].getSize() != shape.nz || dims[1].getSize() != shape.nx) {
+    if (nc_open(path.c_str(), NC_NOWRITE, &ncid) != NC_NOERR) {
+        throw std::runtime_error("Failed to open NetCDF file: " + path);
+    }
+    
+    nc_inq_varid(ncid, "velocity", &varid);
+    
+    size_t z_len, x_len;
+    int dimids[2];
+    nc_inq_vardimid(ncid, varid, dimids);
+    nc_inq_dimlen(ncid, dimids[0], &z_len);
+    nc_inq_dimlen(ncid, dimids[1], &x_len);
+    
+    if (z_len != shape.nz || x_len != shape.nx) {
+        nc_close(ncid);
         throw std::runtime_error("NetCDF variable shape mismatch");
     }
     
-    var.getVar(data);
+    nc_get_var_float(ncid, varid, data);
+    nc_close(ncid);
 #else
     (void)path;
     (void)data;
