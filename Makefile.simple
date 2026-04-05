@@ -1,0 +1,55 @@
+# Simple Makefile for io-bench-cpp (no CMake required)
+
+CXX ?= g++
+CXXFLAGS = -std=c++20 -O2 -Wall -Wextra -Wpedantic
+INCLUDES = -Iinclude -I_deps/json/include -I_deps/cnpy
+
+# Sources
+SRCS = src/benchmark.cpp src/formats/binary.cpp src/formats/json.cpp src/formats/npy.cpp \
+       src/formats/hdf5.cpp src/formats/netcdf.cpp src/formats/tiledb.cpp src/formats/adios2.cpp \
+       src/report.cpp
+
+# Main target
+.PHONY: all clean deps test
+
+all: io_bench
+
+# Fetch dependencies
+deps:
+	mkdir -p _deps
+	@if [ ! -d "_deps/json" ]; then \
+		git clone --depth 1 --branch v3.11.3 https://github.com/nlohmann/json.git _deps/json; \
+	fi
+	@if [ ! -d "_deps/cnpy" ]; then \
+		git clone --depth 1 https://github.com/rogersce/cnpy.git _deps/cnpy; \
+	fi
+
+# Build executable
+io_bench: deps $(SRCS) src/main.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(SRCS) src/main.cpp -o io_bench
+
+# Run benchmark
+run: io_bench
+	./io_bench --nx 100 --nz 80
+
+# Run full benchmark
+bench: io_bench
+	mkdir -p artifacts
+	./io_bench --nx 400 --nz 300 --iterations 3 --output artifacts/benchmark.md
+
+# Build tests
+test: deps io_bench
+	@echo "Tests require CMake/GTest - run: cmake -S . -B build && cd build && ctest"
+
+# Clean
+clean:
+	rm -rf io_bench _deps build artifacts
+
+# Install system dependencies (Ubuntu)
+install-deps-ubuntu:
+	sudo apt-get update
+	sudo apt-get install -y g++ git libhdf5-dev libnetcdf-c++4-dev
+
+# Install system dependencies (macOS)
+install-deps-macos:
+	brew install hdf5 netcdf

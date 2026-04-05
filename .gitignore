@@ -1,0 +1,11 @@
+build/
+artifacts/
+.cache/
+*.swp
+*.swo
+*~
+.DS_Store
+CMakeUserPresets.json
+compile_commands.json
+deps/
+third_party/
