@@ -128,8 +128,8 @@ TEST_F(FormatTest, BinaryHeaderFileSize) {
     auto path = temp_dir_ / "test.binh";
     format.write(path.string(), data_.data(), shape_);
     
-    // Header: 4 magic + 8 nx + 8 nz = 20 bytes
-    auto expected_size = shape_.bytes() + 20;
+    // Header: 4 magic + 8 nx + 8 nz + 8 ny = 28 bytes
+    auto expected_size = shape_.bytes() + 28;
     auto actual_size = std::filesystem::file_size(path);
     
     EXPECT_EQ(expected_size, actual_size);

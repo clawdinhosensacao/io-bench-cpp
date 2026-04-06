@@ -36,6 +36,7 @@ SRCS = src/benchmark.cpp src/report.cpp src/formats.cpp \
        src/formats/binary.cpp src/formats/npy.cpp src/formats/json.cpp \
        src/formats/hdf5.cpp src/formats/netcdf.cpp src/formats/tiledb.cpp \
        src/formats/adios2.cpp src/formats/extra.cpp \
+       src/formats/zarr.cpp src/formats/segy.cpp src/formats/duckdb.cpp \
        third_party/cnpy/cnpy.cpp
 
 build/io_bench: build fetch-deps $(SRCS) src/main.cpp
@@ -68,23 +69,37 @@ HDF5_PREFIX := /home/linuxbrew/.linuxbrew
 HDF5_EXISTS := $(shell test -f $(HDF5_PREFIX)/include/hdf5.h && echo yes)
 ifeq ($(HDF5_EXISTS),yes)
 CXXFLAGS += -DHAVE_HDF5 -I$(HDF5_PREFIX)/include
-LDFLAGS += -L$(HDF5_PREFIX)/lib -lhdf5 -lhdf5_hl
+LDFLAGS += -L$(HDF5_PREFIX)/lib -lhdf5 -lhdf5_hl -Wl,-rpath,$(HDF5_PREFIX)/lib -Wl,-rpath-link,$(HDF5_PREFIX)/lib
 endif
 
 NETCDF_EXISTS := $(shell test -f $(HDF5_PREFIX)/include/netcdf.h && echo yes)
 ifeq ($(NETCDF_EXISTS),yes)
 CXXFLAGS += -DHAVE_NETCDF -I$(HDF5_PREFIX)/include
-LDFLAGS += -L$(HDF5_PREFIX)/lib -lnetcdf
+LDFLAGS += -L$(HDF5_PREFIX)/lib -lnetcdf -Wl,-rpath,$(HDF5_PREFIX)/lib -Wl,-rpath-link,$(HDF5_PREFIX)/lib
 endif
 
 TILEDB_EXISTS := $(shell test -f $(HDF5_PREFIX)/include/tiledb/tiledb && echo yes)
 ifeq ($(TILEDB_EXISTS),yes)
 CXXFLAGS += -DHAVE_TILEDB -I$(HDF5_PREFIX)/include
-LDFLAGS += -L$(HDF5_PREFIX)/lib -ltiledb
+LDFLAGS += -L$(HDF5_PREFIX)/lib -ltiledb -Wl,-rpath,$(HDF5_PREFIX)/lib -Wl,-rpath-link,$(HDF5_PREFIX)/lib
 endif
 
 ADIOS2_EXISTS := $(shell test -f $(HDF5_PREFIX)/include/adios2_c.h && echo yes)
 ifeq ($(ADIOS2_EXISTS),yes)
 CXXFLAGS += -DHAVE_ADIOS2 -I$(HDF5_PREFIX)/include
-LDFLAGS += -L$(HDF5_PREFIX)/lib -ladios2
+LDFLAGS += -L$(HDF5_PREFIX)/lib -ladios2 -Wl,-rpath,$(HDF5_PREFIX)/lib -Wl,-rpath-link,$(HDF5_PREFIX)/lib
+endif
+
+# DuckDB support
+DUCKDB_EXISTS := $(shell test -f $(HDF5_PREFIX)/include/duckdb.h && echo yes)
+ifeq ($(DUCKDB_EXISTS),yes)
+CXXFLAGS += -DHAVE_DUCKDB -I$(HDF5_PREFIX)/include
+LDFLAGS += -L$(HDF5_PREFIX)/lib -lduckdb -Wl,-rpath,$(HDF5_PREFIX)/lib -Wl,-rpath-link,$(HDF5_PREFIX)/lib
+endif
+
+# Apache Arrow/Parquet support
+PARQUET_EXISTS := $(shell test -f $(HDF5_PREFIX)/include/arrow/api.h && echo yes)
+ifeq ($(PARQUET_EXISTS),yes)
+CXXFLAGS += -DHAVE_PARQUET -I$(HDF5_PREFIX)/include
+LDFLAGS += -L$(HDF5_PREFIX)/lib -larrow -lparquet -Wl,-rpath,$(HDF5_PREFIX)/lib -Wl,-rpath-link,$(HDF5_PREFIX)/lib
 endif

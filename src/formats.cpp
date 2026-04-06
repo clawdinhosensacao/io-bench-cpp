@@ -12,6 +12,9 @@ std::vector<std::unique_ptr<FormatAdapter>> get_all_adapters() {
     adapters.push_back(std::make_unique<BinaryHeaderFormat>());
     adapters.push_back(std::make_unique<NpyFormat>());
     adapters.push_back(std::make_unique<JsonFormat>());
+    adapters.push_back(std::make_unique<MmapFormat>());
+    adapters.push_back(std::make_unique<ZarrFormat>());
+    adapters.push_back(std::make_unique<SegyFormat>());
     
     // Optional formats
 #ifdef HAVE_HDF5

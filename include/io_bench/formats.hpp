@@ -144,4 +144,14 @@ public:
     std::string extension() const override { return ".mdio"; }
 };
 
+/// DuckDB format (SQL database)
+class DuckDBFormat : public FormatAdapter {
+public:
+    std::string name() const override { return "duckdb"; }
+    bool is_available() const override;
+    void write(const std::string& path, const float* data, const ArrayShape& shape) override;
+    void read(const std::string& path, float* data, const ArrayShape& shape) override;
+    std::string extension() const override { return ".duckdb"; }
+};
+
 } // namespace io_bench
