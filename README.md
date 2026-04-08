@@ -2,7 +2,7 @@
 
 A comprehensive I/O format benchmark for scientific computing arrays, implemented entirely in C++20. Focused on **geophysics and seismic processing** workloads.
 
-## Supported Formats (17 formats, 16 working)
+## Supported Formats (18 formats, 17 working)
 
 | Format | Status | Type | Description |
 |--------|--------|------|-------------|
@@ -10,6 +10,7 @@ A comprehensive I/O format benchmark for scientific computing arrays, implemente
 | `binary_header` | ✅ Always | Native C++ | Float32 with shape header (magic + nx + nz) |
 | `mmap` | ✅ Always | Native C++ | Memory-mapped binary (POSIX) |
 | `rsf` | ✅ Always | Native C++ | Madagascar Regularly Sampled Format |
+| `segd` | ✅ Always | Native C++ | SEG-D field recording format for seismic acquisition |
 | `npy` | ✅ Always | Native C++ | NumPy native format via cnpy |
 | `json` | ✅ Always | Native C++ | JSON 2D array (nlohmann/json) |
 | `hdf5` | ✅ Optional | Native C++ | HDF5 via HighFive |

@@ -159,6 +159,7 @@ std::vector<std::unique_ptr<FormatAdapter>> create_all_adapters() {
     adapters.push_back(std::make_unique<MiniSeedFormat>());
     adapters.push_back(std::make_unique<RsfFormat>());
     adapters.push_back(std::make_unique<AsdfFormat>());
+    adapters.push_back(std::make_unique<SegDFormat>());
     
     return adapters;
 }
