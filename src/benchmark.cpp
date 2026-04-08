@@ -156,6 +156,7 @@ std::vector<std::unique_ptr<FormatAdapter>> create_all_adapters() {
     adapters.push_back(std::make_unique<SegyFormat>());
     adapters.push_back(std::make_unique<TensorStoreFormat>());
     adapters.push_back(std::make_unique<MdioFormat>());
+    adapters.push_back(std::make_unique<MiniSeedFormat>());
     
     return adapters;
 }

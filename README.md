@@ -2,7 +2,7 @@
 
 A comprehensive I/O format benchmark for scientific computing arrays, implemented entirely in C++20. Focused on **geophysics and seismic processing** workloads.
 
-## Supported Formats (14/14 working)
+## Supported Formats (15 formats, 14 working)
 
 | Format | Status | Description |
 |--------|--------|-------------|
@@ -20,6 +20,8 @@ A comprehensive I/O format benchmark for scientific computing arrays, implemente
 | `parquet` | ✅ Optional | Apache Parquet via Arrow C++ |
 | `tensorstore` | ✅ Optional | TensorStore via Python bridge |
 | `mdio` | ✅ Optional | MDIO (Multidimensional IO) via Python bridge |
+| `miniseed` | ✅ Optional | MiniSEED seismological time series via obspy |
+| `adios2` | ❌ N/A | ADIOS2 BP format (no library available) |
 
 ## Geophysics Presets
 

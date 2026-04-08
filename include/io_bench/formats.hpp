@@ -154,4 +154,14 @@ public:
     std::string extension() const override { return ".duckdb"; }
 };
 
+/// MiniSEED format (seismological time series via libmseed C API)
+class MiniSeedFormat : public FormatAdapter {
+public:
+    std::string name() const override { return "miniseed"; }
+    bool is_available() const override;
+    void write(const std::string& path, const float* data, const ArrayShape& shape) override;
+    void read(const std::string& path, float* data, const ArrayShape& shape) override;
+    std::string extension() const override { return ".mseed"; }
+};
+
 } // namespace io_bench
