@@ -37,25 +37,28 @@ Seismic workflows have unique I/O characteristics:
 
 ## Format Coverage
 
-### Implemented and Working (14/15)
+### Implemented and Working (17/18)
 
 | Format | 2D | 3D | Implementation | Geophysics Relevance |
 |--------|----|----|----------------|---------------------|
 | binary_f32 | ✅ | ✅ | Native C++ | Velocity model, checkpoint |
 | binary_header | ✅ | ✅ | Native C++ | Self-describing velocity |
 | mmap | ✅ | ✅ | POSIX mmap | Zero-copy wavefield access |
+| rsf | ✅ | ✅ | Native C++ | **Madagascar seismic processing** |
 | npy | ✅ | ✅ | cnpy | NumPy ecosystem interop |
 | json | ✅ | ✅ | nlohmann/json | Config/metadata only |
 | hdf5 | ✅ | ✅ | HighFive/C API | SEGY-derived, ASDF base |
 | netcdf | ✅ | ✅ | libnetcdf | Climate, CF conventions |
 | tiledb | ✅ | ✅ | libtiledb | Cloud-native arrays |
-| zarr | ✅ | ✅ | Native C++ | Cloud chunked storage |
+| zarr | ✅ | ✅ | Python bridge | Cloud chunked storage |
 | parquet | ✅ | ✅ | Apache Arrow | Analytics pipelines |
-| segy | ✅ | ✅ | Native C++ | **Seismic industry standard** |
+| segy | ✅ | ✅ | Python bridge (segyio) | **Seismic industry standard** |
+| segd | ✅ | ✅ | Native C++ | **Field acquisition recording** |
 | duckdb | ✅ | ✅ | libduckdb | SQL analytics on traces |
 | tensorstore | ✅ | ✅ | Python bridge | ML tensor storage |
 | mdio | ✅ | ✅ | Python bridge | **Cloud-native seismic (TGS)** |
 | miniseed | ✅ | ✅ | Python bridge | **Seismological time series** |
+| asdf | ✅ | ✅ | Python bridge | **Seismology data exchange (IRIS)** |
 | adios2 | ❌ | ❌ | N/A | No library available |
 
 ## Geophysics Benchmark Presets
@@ -77,48 +80,57 @@ Built-in scenarios for typical geophysics workloads:
 
 | Format | Write MB/s | Read MB/s | Size (MB) | Category |
 |--------|-----------|-----------|-----------|----------|
-| **hdf5** | 394.8 | **4076.9** | 9.770 | Scientific |
-| **binary_header** | 367.3 | 3894.7 | 9.768 | Binary |
-| **mmap** | 372.0 | 2842.7 | 9.768 | Binary |
-| **npy** | 386.2 | 1950.5 | 9.768 | Binary |
-| **binary_f32** | 339.1 | 1016.8 | 9.768 | Binary |
-| **netcdf** | 240.8 | 1107.3 | 9.768 | Scientific |
-| **parquet** | 59.2 | 484.3 | 14.502 | Columnar |
-| **tiledb** | 115.3 | 447.3 | 9.774 | Cloud |
-| **segy** | 120.6 | 158.5 | 9.918 | **Seismic** |
-| **zarr** | 57.2 | 114.0 | 9.768 | Cloud |
-| **miniseed** | 17.0 | 17.4 | 9.906 | **Seismology** |
-| **json** | 64.9 | 36.7 | 40.826 | Text |
-| **tensorstore** | 6.0 | 26.3 | 8.641 | Python bridge |
-| **mdio** | 2.2 | 2.2 | 8.550 | **Seismic (cloud)** |
+| **rsf** | 390.6 | **4035.1** | 9.768 | **Madagascar** |
+| **hdf5** | 379.6 | 3835.1 | 9.770 | Scientific |
+| **binary_header** | 281.3 | 3867.6 | 9.768 | Binary |
+| **mmap** | 380.7 | 2813.8 | 9.768 | Binary |
+| **npy** | 463.4 | 2198.9 | 9.768 | Binary |
+| **binary_f32** | 221.0 | 1269.0 | 9.768 | Binary |
+| **netcdf** | 221.5 | 1038.3 | 9.768 | Scientific |
+| **parquet** | 53.9 | 429.9 | 14.502 | Columnar |
+| **tiledb** | 99.6 | 444.1 | 9.774 | Cloud |
+| **segy** | 121.4 | 160.7 | 9.918 | **Seismic** |
+| **segd** | 109.7 | 137.4 | 9.844 | **Acquisition** |
+| **zarr** | 65.8 | 116.8 | 9.768 | Cloud |
+| **miniseed** | 15.3 | 15.7 | 9.906 | **Seismology** |
+| **asdf** | 7.6 | 9.1 | 7.931 | **Seismology** |
+| **json** | 64.9 | 38.1 | 40.826 | Text |
+| **tensorstore** | 4.1 | 21.9 | 8.641 | Python bridge |
+| **mdio** | 2.0 | 2.0 | 8.550 | **Seismic (cloud)** |
 
 ### 2D Velocity Model Preset (401×201, ~0.3 MB, 3 iterations)
 
 | Format | Write MB/s | Read MB/s | Size (MB) |
 |--------|-----------|-----------|-----------|
-| binary_header | 198.2 | 4534.0 | 0.307 |
-| mmap | 217.8 | 2754.6 | 0.307 |
-| npy | 251.3 | 2666.9 | 0.308 |
-| hdf5 | 280.6 | 1885.3 | 0.309 |
-| binary_f32 | 171.7 | 1475.0 | 0.307 |
-| netcdf | 139.9 | 737.1 | 0.308 |
-| parquet | 48.3 | 376.6 | 0.552 |
-| segy | 127.9 | 107.3 | 0.403 |
-| tiledb | 13.7 | 112.8 | 0.312 |
-| zarr | 46.2 | 96.9 | 0.308 |
-| json | 71.6 | 43.2 | 1.286 |
-| miniseed | 0.6 | 0.6 | 0.312 |
+| **rsf** | 166.5 | **5325.5** | 0.308 |
+| binary_header | 128.9 | 3761.9 | 0.307 |
+| mmap | 128.5 | 2330.5 | 0.307 |
+| hdf5 | 137.9 | 1472.9 | 0.309 |
+| npy | 115.7 | 1681.1 | 0.308 |
+| binary_f32 | 91.2 | 902.6 | 0.307 |
+| netcdf | 104.1 | 266.5 | 0.308 |
+| parquet | 27.9 | 310.5 | 0.552 |
+| segy | 65.2 | 75.9 | 0.403 |
+| segd | 79.1 | 158.7 | 0.311 |
+| tiledb | 7.2 | 56.1 | 0.312 |
+| zarr | 33.0 | 77.7 | 0.308 |
+| json | 50.8 | 35.0 | 1.286 |
+| miniseed | 0.5 | 0.6 | 0.312 |
+| asdf | 0.3 | 0.3 | 0.260 |
 | mdio | 0.1 | 0.1 | 0.270 |
 
 ### Key Observations
 
-1. **Binary formats dominate**: Raw binary variants achieve 1000-4500 MB/s read for shot gathers
-2. **HDF5 best for large reads**: 4077 MB/s read at 10 MB scale — excellent for velocity model loading
-3. **SEG-Y competitive at scale**: 120 MB/s write, 159 MB/s read — acceptable for industry standard
-4. **MiniSEED 10× faster than MDIO**: 17 MB/s vs 2 MB/s — both via Python bridge, but obspy is leaner
-5. **MDIO slowest**: Python subprocess + xarray + zarr stack = 2 MB/s — viable only for offline cloud workflows
-6. **Parquet strong read**: 484 MB/s read at 10 MB, despite 1.5× size overhead
-7. **JSON impractical**: 4.2× size bloat, 100× slower read than binary_header
+1. **RSF is the fastest geophysics format**: 5325 MB/s read (2D) and 4035 MB/s read (shot gather) — essentially raw binary speed with Madagascar metadata
+2. **Binary formats dominate**: Raw binary variants achieve 1000-4000 MB/s read for shot gathers
+3. **HDF5 best for large reads**: 3835 MB/s read at 10 MB scale — excellent for velocity model loading
+4. **SEG-Y competitive at scale**: 121 MB/s write, 161 MB/s read — acceptable for industry standard
+5. **SEG-D comparable to SEG-Y**: 110 MB/s write, 137 MB/s read — native C++, no external dependencies
+6. **MiniSEED 8× faster than MDIO**: 15 MB/s vs 2 MB/s — both Python bridge, but obspy is leaner
+7. **ASDF slowest Python bridge**: 7.6 MB/s write — HDF5 + pyasdf overhead, but IRIS standard for seismology
+8. **MDIO slowest overall**: Python subprocess + xarray + zarr stack = 2 MB/s — viable only for offline cloud workflows
+9. **Parquet strong read**: 430 MB/s read at 10 MB, despite 1.5× size overhead
+10. **JSON impractical**: 4.2× size bloat, 100× slower read than binary_header
 
 ### C++ vs Python Comparison (Medium: 400×300)
 
@@ -137,18 +149,21 @@ Built-in scenarios for typical geophysics workloads:
 
 | Use Case | Recommended | Alternative | Rationale |
 |----------|-------------|-------------|-----------|
-| Velocity model load | `binary_header` | `mmap`, `hdf5` | Fastest read, metadata in header |
-| RTM checkpoint | `binary_f32` | `npy` | Simplest, fastest write |
+| Velocity model load | `rsf` | `binary_header`, `hdf5` | Fastest read + Madagascar metadata |
+| RTM checkpoint | `binary_f32` | `npy`, `rsf` | Simplest, fastest write |
 | Migration output | `segy` | `hdf5` | Industry standard output |
-| Wavefield snapshot | `mmap` | `binary_header` | Zero-copy, OS page cache |
+| Wavefield snapshot | `mmap` | `binary_header`, `rsf` | Zero-copy, OS page cache |
 
 ### Seismic Data Management
 
 | Use Case | Recommended | Alternative | Rationale |
 |----------|-------------|-------------|-----------|
 | Survey archive | `segy` | `mdio` | Industry standard, widest tool support |
+| Field acquisition | `segd` | `segy` | Native C++, fast write for recording |
+| Madagascar processing | `rsf` | `binary_header` | Native format, 5000+ MB/s read |
 | Cloud storage | `mdio` | `zarr` | Seismic-specific chunking + metadata |
 | Real-time streams | `miniseed` | — | Seismological standard, trace-based |
+| Seismology exchange | `asdf` | `miniseed` | IRIS/FDSN standard, HDF5-based |
 | Analytics/ML | `parquet` | `zarr` | Columnar, good read throughput |
 
 ### Interoperability
@@ -174,6 +189,8 @@ Built-in scenarios for typical geophysics workloads:
 
 ### Native C++ Formats
 - **binary_f32 / binary_header / mmap**: Zero-dependency, maximum performance
+- **rsf**: Madagascar Regularly Sampled Format — text header + raw binary, zero-dependency, 5000+ MB/s read
+- **segd**: SEG-D field recording format — native C++ implementation with trace header structure
 - **npy**: Via cnpy header-only library
 - **json**: Via nlohmann/json header-only library
 - **segy**: Native C++ SEG-Y rev1 writer/reader with EBCDIC + binary headers
