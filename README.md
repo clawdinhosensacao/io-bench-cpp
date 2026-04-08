@@ -2,7 +2,7 @@
 
 A comprehensive I/O format benchmark for scientific computing arrays, implemented entirely in C++20. Focused on **geophysics and seismic processing** workloads.
 
-## Supported Formats (16 formats, 15 working)
+## Supported Formats (17 formats, 16 working)
 
 | Format | Status | Type | Description |
 |--------|--------|------|-------------|
@@ -21,6 +21,7 @@ A comprehensive I/O format benchmark for scientific computing arrays, implemente
 | `duckdb` | ✅ Optional | Native C++ | DuckDB columnar SQL engine |
 | `mdio` | ✅ Optional | Python bridge | MDIO (Multidimensional IO) for seismic |
 | `miniseed` | ✅ Optional | Python bridge | MiniSEED seismological time series via obspy |
+| `asdf` | ✅ Optional | Python bridge | ASDF (Adaptable Seismic Data Format) via pyasdf |
 | `tensorstore` | ✅ Optional | Python bridge | TensorStore via Python bridge |
 | `adios2` | ❌ N/A | — | ADIOS2 BP format (no library available) |
 

@@ -174,4 +174,14 @@ public:
     [[nodiscard]] std::string extension() const override { return ".rsf"; }
 };
 
+/// ASDF format (Adaptable Seismic Data Format — HDF5-based, via pyasdf)
+class AsdfFormat : public FormatAdapter {
+public:
+    std::string name() const override { return "asdf"; }
+    bool is_available() const override;
+    void write(const std::string& path, const float* data, const ArrayShape& shape) override;
+    void read(const std::string& path, float* data, const ArrayShape& shape) override;
+    std::string extension() const override { return ".h5"; }
+};
+
 } // namespace io_bench
