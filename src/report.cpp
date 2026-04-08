@@ -1,4 +1,5 @@
 #include "io_bench/report.hpp"
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -61,7 +62,8 @@ std::string generate_markdown_report(const std::vector<BenchResult>& results,
     // Count available/unavailable
     std::size_t available = 0;
     for (const auto& r : results) {
-        if (r.available) ++available;
+        if (r.available) { ++available;
+}
     }
     ss << "**Available formats:** " << available << "/" << results.size() << "\n\n";
     
@@ -97,13 +99,13 @@ std::string generate_markdown_report(const std::vector<BenchResult>& results,
             sorted_read.push_back(&r);
         }
     }
-    std::sort(sorted_read.begin(), sorted_read.end(), 
+    std::ranges::sort(sorted_read, 
               [](const BenchResult* a, const BenchResult* b) {
                   return a->read_mbps > b->read_mbps;
               });
     
     ss << "### Top Read Throughput\n\n";
-    for (std::size_t i = 0; i < std::min(sorted_read.size(), size_t(3)); ++i) {
+    for (std::size_t i = 0; i < std::min(sorted_read.size(), static_cast<size_t>(3)); ++i) {
         ss << (i + 1) << ". **" << sorted_read[i]->name << "**: " 
            << std::fixed << std::setprecision(1) << sorted_read[i]->read_mbps << " MB/s\n";
     }
@@ -115,13 +117,13 @@ std::string generate_markdown_report(const std::vector<BenchResult>& results,
             sorted_write.push_back(&r);
         }
     }
-    std::sort(sorted_write.begin(), sorted_write.end(), 
+    std::ranges::sort(sorted_write, 
               [](const BenchResult* a, const BenchResult* b) {
                   return a->write_mbps > b->write_mbps;
               });
     
     ss << "\n### Top Write Throughput\n\n";
-    for (std::size_t i = 0; i < std::min(sorted_write.size(), size_t(3)); ++i) {
+    for (std::size_t i = 0; i < std::min(sorted_write.size(), static_cast<size_t>(3)); ++i) {
         ss << (i + 1) << ". **" << sorted_write[i]->name << "**: " 
            << std::fixed << std::setprecision(1) << sorted_write[i]->write_mbps << " MB/s\n";
     }

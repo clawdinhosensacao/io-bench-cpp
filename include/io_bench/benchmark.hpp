@@ -10,7 +10,7 @@ namespace io_bench {
 
 class BenchmarkRunner {
 public:
-    explicit BenchmarkRunner(const BenchConfig& config);
+    explicit BenchmarkRunner(BenchConfig  config);
     ~BenchmarkRunner();
     
     /// Add a format adapter
@@ -23,7 +23,7 @@ public:
     [[nodiscard]] BenchResult run_single(FormatAdapter& adapter);
     
     /// Generate test data
-    [[nodiscard]] std::vector<float> generate_data(const ArrayShape& shape, unsigned int seed = 0);
+    [[nodiscard]] static std::vector<float> generate_data(const ArrayShape& shape, unsigned int seed = 0);
     
     /// Get current configuration
     [[nodiscard]] const BenchConfig& config() const { return config_; }

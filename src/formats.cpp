@@ -1,8 +1,8 @@
 #include "io_bench/formats.hpp"
 #include <memory>
 
-namespace io_bench {
-namespace formats {
+
+namespace io_bench::formats {
 
 std::vector<std::unique_ptr<FormatAdapter>> get_all_adapters() {
     std::vector<std::unique_ptr<FormatAdapter>> adapters;
@@ -40,5 +40,5 @@ std::vector<std::unique_ptr<FormatAdapter>> get_all_adapters() {
     return adapters;
 }
 
-}  // namespace formats
-}  // namespace io_bench
+} // namespace io_bench::formats
+

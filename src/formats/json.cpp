@@ -19,7 +19,7 @@ void JsonFormat::write(const std::string& path, const float* data, const ArraySh
             for (std::size_t z = 0; z < shape.nz; ++z) {
                 json row = json::array();
                 for (std::size_t x = 0; x < shape.nx; ++x) {
-                    std::size_t idx = y * shape.nz * shape.nx + z * shape.nx + x;
+                    std::size_t idx = (y * shape.nz * shape.nx) + (z * shape.nx) + x;
                     row.push_back(data[idx]);
                 }
                 plane.push_back(std::move(row));
@@ -32,7 +32,7 @@ void JsonFormat::write(const std::string& path, const float* data, const ArraySh
         for (std::size_t z = 0; z < shape.nz; ++z) {
             json row = json::array();
             for (std::size_t x = 0; x < shape.nx; ++x) {
-                row.push_back(data[z * shape.nx + x]);
+                row.push_back(data[(z * shape.nx) + x]);
             }
             j.push_back(std::move(row));
         }
@@ -74,7 +74,7 @@ void JsonFormat::read(const std::string& path, float* data, const ArrayShape& sh
                     throw std::runtime_error("Invalid JSON 3D array shape (nx)");
                 }
                 for (std::size_t x = 0; x < shape.nx; ++x) {
-                    std::size_t idx = y * shape.nz * shape.nx + z * shape.nx + x;
+                    std::size_t idx = (y * shape.nz * shape.nx) + (z * shape.nx) + x;
                     data[idx] = row[x].get<float>();
                 }
             }
@@ -90,7 +90,7 @@ void JsonFormat::read(const std::string& path, float* data, const ArrayShape& sh
                 throw std::runtime_error("Invalid JSON 2D array shape (nx)");
             }
             for (std::size_t x = 0; x < shape.nx; ++x) {
-                data[z * shape.nx + x] = row[x].get<float>();
+                data[(z * shape.nx) + x] = row[x].get<float>();
             }
         }
     }

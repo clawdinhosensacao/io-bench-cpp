@@ -40,9 +40,9 @@ void BinaryHeaderFormat::write(const std::string& path, const float* data, const
     }
     // Write header: magic + nx + nz + ny (for 3D)
     file.write(BIN_MAGIC, 4);
-    uint64_t nx = static_cast<uint64_t>(shape.nx);
-    uint64_t nz = static_cast<uint64_t>(shape.nz);
-    uint64_t ny = static_cast<uint64_t>(shape.ny);
+    auto nx = static_cast<uint64_t>(shape.nx);
+    auto nz = static_cast<uint64_t>(shape.nz);
+    auto ny = static_cast<uint64_t>(shape.ny);
     file.write(reinterpret_cast<const char*>(&nx), sizeof(nx));
     file.write(reinterpret_cast<const char*>(&nz), sizeof(nz));
     file.write(reinterpret_cast<const char*>(&ny), sizeof(ny));
@@ -61,7 +61,9 @@ void BinaryHeaderFormat::read(const std::string& path, float* data, const ArrayS
     if (std::strncmp(magic, BIN_MAGIC, 4) != 0) {
         throw std::runtime_error("Invalid binary header magic in: " + path);
     }
-    uint64_t nx, nz, ny;
+    uint64_t nx;
+    uint64_t nz;
+    uint64_t ny;
     file.read(reinterpret_cast<char*>(&nx), sizeof(nx));
     file.read(reinterpret_cast<char*>(&nz), sizeof(nz));
     file.read(reinterpret_cast<char*>(&ny), sizeof(ny));

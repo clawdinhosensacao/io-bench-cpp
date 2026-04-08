@@ -4,11 +4,12 @@
 #include <filesystem>
 #include <sstream>
 #include <iomanip>
+#include <utility>
 
 namespace io_bench {
 
-BenchmarkRunner::BenchmarkRunner(const BenchConfig& config) 
-    : config_(config) {
+BenchmarkRunner::BenchmarkRunner(BenchConfig  config) 
+    : config_(std::move(config)) {
     // Create temp directory for benchmark files
     temp_dir_ = std::filesystem::temp_directory_path() / "io_bench_cpp";
     std::filesystem::create_directories(temp_dir_);
@@ -48,7 +49,7 @@ BenchResult BenchmarkRunner::run_single(FormatAdapter& adapter) {
         return result;
     }
     
-    ArrayShape shape{config_.nx, config_.nz, config_.ny};
+    ArrayShape shape{.nx=config_.nx, .nz=config_.nz, .ny=config_.ny};
     auto data = generate_data(shape);
     std::vector<float> read_buffer(shape.total());
     
@@ -127,7 +128,8 @@ BenchResult BenchmarkRunner::run_single(FormatAdapter& adapter) {
 std::vector<BenchResult> BenchmarkRunner::run_all() {
     std::vector<BenchResult> results;
     
-    for (auto& adapter : adapters_) {
+    results.reserve(adapters_.size());
+for (auto& adapter : adapters_) {
         results.push_back(run_single(*adapter));
     }
     
