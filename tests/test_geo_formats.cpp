@@ -108,28 +108,28 @@ TEST_F(GeoFormatTest, SegdWriteRead2D) {
 
 TEST_F(GeoFormatTest, SegdAvailability) {
     io_bench::SegDFormat format;
-    EXPECT_NO_THROW(format.is_available());
+    (void)format.is_available();
 }
 
 // --- MiniSEED ---
 
 TEST_F(GeoFormatTest, MiniSeedAvailability) {
     io_bench::MiniSeedFormat format;
-    EXPECT_NO_THROW(format.is_available());
+    (void)format.is_available();
 }
 
 // --- ASDF ---
 
 TEST_F(GeoFormatTest, AsdfAvailability) {
     io_bench::AsdfFormat format;
-    EXPECT_NO_THROW(format.is_available());
+    (void)format.is_available();
 }
 
 // --- MDIO ---
 
 TEST_F(GeoFormatTest, MdioAvailability) {
     io_bench::MdioFormat format;
-    EXPECT_NO_THROW(format.is_available());
+    (void)format.is_available();
 }
 
 // --- Native geophysics format consistency ---
