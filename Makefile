@@ -37,6 +37,7 @@ SRCS = src/benchmark.cpp src/report.cpp src/formats.cpp \
        src/formats/hdf5.cpp src/formats/netcdf.cpp src/formats/tiledb.cpp \
        src/formats/adios2.cpp src/formats/extra.cpp \
        src/formats/zarr.cpp src/formats/segy.cpp src/formats/duckdb.cpp \
+       src/formats/parquet.cpp src/formats/tensorstore.cpp \
        third_party/cnpy/cnpy.cpp
 
 build/io_bench: build fetch-deps $(SRCS) src/main.cpp

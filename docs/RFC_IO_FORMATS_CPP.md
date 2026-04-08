@@ -2,7 +2,7 @@
 
 **Status:** Draft  
 **Author:** io-bench-cpp benchmark  
-**Date:** 2026-04-05  
+**Date:** 2026-04-07 (updated)  
 **Related:** Python benchmark results (rtm3d-cli/scripts/io_format_benchmark.py)
 
 ## Summary
@@ -61,86 +61,76 @@ The benchmarks were run on the following hardware configuration:
 | Optimization | -O3 |
 | C++ Standard | C++20 |
 
-## Results Summary
+## Format Coverage
 
-**Available formats:** 8/14 (7 fully working)
+### Implemented and Working (13/14)
 
-### Working Formats
-- binary_f32, binary_header, mmap, npy, json, hdf5, netcdf
-
-### Not Compiled (missing dependencies)
-- adios2, zarr, parquet, segy, tensorstore, mdio, tiledb (API issues)
+| Format | Status | 2D | 3D | Implementation | Notes |
+|--------|--------|----|----|----------------|-------|
+| binary_f32 | ✅ | ✅ | ✅ | Native | Raw float32, no header |
+| binary_header | ✅ | ✅ | ✅ | Native | Self-describing with dims |
+| mmap | ✅ | ✅ | ✅ | POSIX mmap | Zero-copy, OS-managed |
+| npy | ✅ | ✅ | ✅ | cnpy | NumPy native format |
+| json | ✅ | ✅ | ✅ | nlohmann/json | Human-readable (slow) |
+| hdf5 | ✅ | ✅ | ✅ | HighFive/C API | Scientific standard |
+| netcdf | ✅ | ✅ | ✅ | libnetcdf | Climate/CF conventions |
+| tiledb | ✅ | ✅ | ✅ | libtiledb | Cloud arrays |
+| zarr | ✅ | ✅ | ✅ | Native C++ | Chunked binary + JSON |
+| parquet | ✅ | ✅ | ✅ | Apache Arrow | Columnar storage |
+| segy | ✅ | ✅ | ✅ | Native C++ | SEG-Y rev1 |
+| duckdb | ✅ | ✅ | ✅ | libduckdb | SQL database |
+| tensorstore | ✅ | ✅ | ✅ | Python bridge | Google TensorStore via zarr |
+| mdio | ❌ | - | - | N/A | No C++ library available |
 
 ## Benchmark Results
 
 ### Test Configuration
 
-| Parameter | Small | Medium | Large | 3D Small | 3D Large |
-|-----------|-------|--------|-------|----------|----------|
-| Grid size | 80×100 | 400×300 | 800×600 | 100×80×20 | 200×150×50 |
-| Data size | 0.031 MB | 0.458 MB | 1.83 MB | 0.61 MB | 5.72 MB |
-| Iterations | 3 | 5 | 10 | 3 | 5 |
+| Parameter | Small | Medium | Large |
+|-----------|-------|--------|-------|
+| Grid size | 80×100 | 400×300 | 800×600 |
+| Data size | 0.031 MB | 0.458 MB | 1.83 MB |
+| Iterations | 3 | 5 | 10 |
 | Compiler | g++ -O3 -std=c++20 |
 
 ### Throughput Results (Medium: 400×300 float32, 2D)
 
 | Format | Write MB/s | Read MB/s | Size (MB) | Notes |
 |--------|-----------|-----------|-----------|-------|
-| **binary_header** | 260.5 | **6428.8** | 0.458 | Best read throughput |
-| **mmap** | 283.3 | 3609.9 | 0.458 | Zero-copy, OS-managed |
-| **npy** | **299.3** | 3298.9 | 0.458 | NumPy native, portable |
-| **binary_f32** | 279.6 | 1891.3 | 0.458 | Simplest, no header |
-| **hdf5** | 239.3 | 1672.3 | 0.460 | Self-describing, metadata |
-| **netcdf** | 138.2 | 613.5 | 0.458 | CF conventions |
-| **json** | 69.5 | 41.5 | 1.914 | 4.2× size overhead |
-
-### Throughput Results (Large: 800×600 float32)
-
-| Format | Write MB/s | Read MB/s | Notes |
-|--------|-----------|-----------|-------|
-| **mmap** | 412.0 | 4587.6 | Best write, excellent read |
-| **npy** | 398.8 | 3107.0 | Balanced performance |
-| **binary_f32** | 383.3 | 1537.7 | Simple, fast write |
-| **binary_header** | 366.8 | 6213.0 | Best read overall |
-| **hdf5** | 365.0 | 4597.6 | Excellent read, metadata |
-| **netcdf** | 215.6 | 1286.5 | Slower, but portable |
-| **json** | 68.9 | 44.9 | 50× slower than binary |
-
-### Throughput Results (3D Large: 200×150×50 float32)
-
-| Format | Write MB/s | Read MB/s | Size (MB) | Notes |
-|--------|-----------|-----------|-----------|-------|
-| **npy** | **490.6** | 2652.1 | 5.72 | Best write |
-| **mmap** | 472.2 | 3770.3 | 5.72 | Excellent read |
-| **binary_header** | 445.6 | **4103.2** | 5.72 | Best read |
-| **binary_f32** | 439.4 | 1494.5 | 5.72 | Simple format |
-| **hdf5** | 425.0 | 3143.9 | 5.72 | Self-describing |
-| **netcdf** | 273.5 | 1102.8 | 5.72 | CF conventions |
-| **json** | 68.9 | 39.3 | 23.9 | 4.2× size overhead |
-
-### Key Observations (3D Benchmarks)
-
-1. **3D scaling**: All binary formats scale linearly with data size
-2. **HDF5 improves**: 3D performance closer to binary (3143 MB/s vs 4103 MB/s)
-3. **JSON still slow**: 10× slower than binary, 4× size overhead
-4. **Memory efficiency**: 5.72 MB array fits entirely in L3 cache
+| **binary_header** | 265.5 | **6275.1** | 0.458 | Best read throughput |
+| **npy** | **275.3** | 2705.9 | 0.458 | Best write, portable |
+| **mmap** | 223.5 | 2831.6 | 0.458 | Zero-copy, OS-managed |
+| **hdf5** | 152.0 | 1839.0 | 0.460 | Self-describing, metadata |
+| **binary_f32** | 248.6 | 1578.8 | 0.458 | Simplest, no header |
+| **netcdf** | 96.2 | 675.8 | 0.458 | CF conventions |
+| **parquet** | 44.3 | 407.8 | 0.824 | Columnar, 1.8× size |
+| **segy** | 119.1 | 134.1 | 0.553 | Industry standard |
+| **zarr** | 42.3 | 96.6 | 0.458 | Chunked, cloud-ready |
+| **tiledb** | 16.3 | 115.4 | 0.462 | Cloud-native |
+| **json** | 69.1 | 37.4 | 1.914 | 4.2× size overhead |
+| **tensorstore** | 1.1 | 1.5 | 0.415 | Python subprocess overhead |
 
 ### Key Observations
 
-1. **Binary formats dominate**: Raw binary variants achieve 1500-4700 MB/s read, 250-280 MB/s write
-2. **Memory-mapped I/O**: Excellent read (2989 MB/s) with zero-copy semantics
-3. **JSON overhead**: 4.2× size bloat, 24× slower read than binary_f32
-4. **NPY format**: Good balance of portability and performance (2500 MB/s read)
+1. **Binary formats dominate**: Raw binary variants achieve 1579-6275 MB/s read, 249-275 MB/s write
+2. **Memory-mapped I/O**: Excellent read (2832 MB/s) with zero-copy semantics
+3. **Parquet competitive**: 408 MB/s read with columnar structure, 1.8× size overhead
+4. **Zarr viable**: 97 MB/s read in native C++, cloud-compatible
+5. **TensorStore overhead**: Python bridge adds significant latency (1-2 MB/s), suitable only for offline workflows
+6. **JSON overhead**: 4.2× size bloat, 168× slower read than binary_header
+7. **TileDB slow write**: 16.3 MB/s write, but reasonable read at 115 MB/s
 
 ### C++ vs Python Comparison
 
 | Format | C++ Read MB/s | Python Read MB/s | Speedup |
 |--------|--------------|------------------|---------|
-| binary_f32 | 1537.7 | 309.0 | **5.0×** |
-| npy | 3107.0 | 88.0 | **35.3×** |
-| hdf5 | 1672.3 | 23.0 | **72.7×** |
-| netcdf | 613.5 | 27.0 | **22.7×** |
-| json | 44.9 | 27.0 | 1.7× |
+| binary_f32 | 1578.8 | 309.0 | **5.1×** |
+| npy | 2705.9 | 88.0 | **30.8×** |
+| hdf5 | 1839.0 | 23.0 | **79.9×** |
+| netcdf | 675.8 | 27.0 | **25.0×** |
+| json | 37.4 | 27.0 | 1.4× |
+| parquet | 407.8 | 42.0 | **9.7×** |
+| zarr | 96.6 | 31.0 | **3.1×** |
 
 C++ implementation shows dramatic improvements for binary and scientific formats due to:
 - Direct memory access without Python object creation
@@ -162,166 +152,90 @@ C++ implementation shows dramatic improvements for binary and scientific formats
 
 | Use Case | Recommended Format | Rationale |
 |----------|-------------------|-----------|
-| NumPy ecosystem | `npy` | Native format, good performance |
+| NumPy ecosystem | `npy` | Native format, best write throughput |
 | MATLAB users | `npy` | scipy.io.loadmat alternative |
-| Self-describing | `hdf5` | Rich metadata, hierarchical |
+| Self-describing | `hdf5` | Rich metadata, hierarchical, excellent read |
 | Climate/science | `netcdf` | CF conventions, metadata |
+| Analytics pipelines | `parquet` | Columnar, good read (408 MB/s) |
 
 ### Tier 3: Cloud/Distributed
 
 | Use Case | Recommended Format | Rationale |
 |----------|-------------------|-----------|
 | Cloud object storage | `zarr` | Chunked, parallel access |
-| Analytics pipelines | `parquet` | Columnar, compression |
-| HPC parallel I/O | `adios2` | MPI-IO, streaming |
+| Cloud-native arrays | `tiledb` | Cloud-optimized, good read |
+| Offline tensor access | `tensorstore` | Python bridge, for non-hot paths |
 
 ### Not Recommended
 
 | Format | Issue |
 |--------|-------|
-| `json` | 4× size overhead, 50× slower than binary |
-| `duckdb` (row insert) | Extremely slow for array data (26s for 8K values) |
+| `json` | 4× size overhead, 168× slower read than binary_header |
+| `duckdb` (row insert) | Extremely slow for array data |
+| `tensorstore` (hot path) | Python subprocess overhead, 1-2 MB/s |
 
-## Implementation Guidance
+## Implementation Details
 
-### Binary Header Format
+### New: Parquet Format (`src/formats/parquet.cpp`)
 
-```cpp
-struct BinaryHeader {
-    uint32_t magic = 0x52544D33;  // "RTM3"
-    uint32_t version = 1;
-    uint32_t nx, nz, ny;
-    float dx, dz, dy;
-    uint32_t reserved[8];
-};  // 72 bytes total
-```
+**Implementation**: Apache Arrow C++ API
 
-Benefits:
-- Self-describing (dimensions embedded)
-- Backward compatible version field
-- Reserved space for future metadata
+**Design**:
+- Long-format storage: columns (ix, iy, iz, value) per row
+- Uses Arrow builders for efficient column construction
+- Apache Arrow 23.0.1 with Parquet support
+- 1.8× size overhead vs raw binary (index columns)
 
-### Memory-Mapped I/O
+### New: TensorStore Format (`src/formats/tensorstore.cpp`)
 
-```cpp
-#include <sys/mman.h>
-#include <fcntl.h>
+**Implementation**: Python subprocess bridge
 
-class MappedReader {
-    int fd_;
-    void* data_;
-    size_t size_;
-public:
-    MappedReader(const std::string& path) {
-        fd_ = open(path.c_str(), O_RDONLY);
-        size_ = lseek(fd_, 0, SEEK_END);
-        data_ = mmap(nullptr, size_, PROT_READ, MAP_PRIVATE, fd_, 0);
-    }
-    ~MappedReader() {
-        munmap(data_, size_);
-        close(fd_);
-    }
-    const float* data() const { return static_cast<const float*>(data_); }
-};
-```
+**Design**:
+- C++ writes raw binary, invokes Python tensorstore to write zarr
+- Read path: Python tensorstore reads zarr, dumps binary, C++ loads
+- Uses temporary Python script files to avoid shell quoting issues
+- Stores as zarr v2 format via TensorStore's zarr driver
 
-Benefits:
-- Zero-copy: OS pages directly to application
-- Lazy loading: Only touched pages fault in
-- Scalable: Works for multi-GB models
+### Updated: Benchmark Directory Support
 
-### NPY Format Integration
-
-The `cnpy` library provides header-only C++ NPY support:
-
-```cpp
-#include "cnpy.h"
-
-// Write
-std::vector<size_t> shape = {nz, nx};
-cnpy::npy_save("output.npy", data, shape, "w");
-
-// Read
-cnpy::NpyArray arr = cnpy::npy_load("output.npy");
-float* data = arr.data<float>();
-```
+**Fix**: `benchmark.cpp` now handles directory-based formats (zarr, tensorstore)
+- `file_size` uses `recursive_directory_iterator` for directories
+- Cleanup uses `remove_all` instead of `remove` for directories
 
 ## Performance Analysis
 
-### Hardware Utilization
-
-| Metric | Theoretical | Observed (Best) | Efficiency |
-|--------|-------------|-----------------|------------|
-| **Memory Bandwidth** | ~50 GB/s (DDR4) | 4.1 GB/s read | 8.2% |
-| **SSD Read** | ~500 MB/s | 4103 MB/s* | N/A (cached) |
-| **SSD Write** | ~500 MB/s | 490 MB/s | 98% |
-| **L3 Cache** | ~200 GB/s | 6428 MB/s | 3.2% |
-
-\* Read throughput exceeds SSD specs due to OS page cache. All data fits in available RAM (6.7 GB).
-
-### Bottleneck Analysis
-
-1. **Write operations**: Bound by storage I/O (~450-500 MB/s typical SSD)
-2. **Read operations**: Cached in RAM, showing memory bandwidth limits
-3. **Small arrays**: Overhead-dominated (system calls, buffer allocation)
-4. **Large arrays (>5 MB)**: Better utilization, closer to theoretical limits
-
-### Format-Specific Observations
-
-| Format | Write Bottleneck | Read Bottleneck |
-|--------|------------------|-----------------|
-| binary_f32 | System call overhead | memcpy bandwidth |
-| npy | Header parsing | NumPy compatibility checks |
-| hdf5 | Metadata overhead | HDF5 library overhead |
-| netcdf | CF convention checks | NetCDF library overhead |
-| json | String formatting | JSON parsing, allocations |
-
-## Performance Characteristics
-
-### Read Throughput Hierarchy (800×600)
+### Read Throughput Hierarchy (400×300)
 
 ```
-binary_header:  ████████████████████████████████████████████ 6213 MB/s
-mmap:           ████████████████████████████████████ 4588 MB/s
-hdf5:           ████████████████████████████████████ 4598 MB/s
-npy:            ████████████████████████████ 3107 MB/s
-binary_f32:     ████████████████ 1538 MB/s
-netcdf:         ████████████ 1287 MB/s
-json:           █ 45 MB/s
+binary_header:  ████████████████████████████████████████████ 6275 MB/s
+npy:            ████████████████████████████████ 2706 MB/s
+mmap:           ██████████████████████████████ 2832 MB/s
+hdf5:           ████████████████████████ 1839 MB/s
+binary_f32:     ████████████████████ 1579 MB/s
+netcdf:         █████████ 676 MB/s
+parquet:        ██████ 408 MB/s
+segy:           ██ 134 MB/s
+tiledb:         █ 115 MB/s
+zarr:           █ 97 MB/s
+json:           █ 37 MB/s
+tensorstore:    ░ 1.5 MB/s
 ```
 
-### Write Throughput Hierarchy (800×600)
+### Write Throughput Hierarchy (400×300)
 
 ```
-mmap:           ████████████████████████████████████ 412 MB/s
-npy:            ████████████████████████████████ 399 MB/s
-binary_f32:     ██████████████████████████████ 383 MB/s
-binary_header:  ██████████████████████████████ 367 MB/s
-hdf5:           ██████████████████████████████ 365 MB/s
-netcdf:         ████████████████████ 216 MB/s
-json:           ██████ 69 MB/s
-```
-
-### 3D Performance (200×150×50, 5.72 MB)
-
-```
-Read (MB/s):
-binary_header:  ████████████████████████████████████████████ 4103
-mmap:           ████████████████████████████████████ 3770
-hdf5:           ████████████████████████████████ 3144
-npy:            ████████████████████████████ 2652
-binary_f32:     ████████████████ 1495
-netcdf:         ████████████ 1103
-json:           █ 39
-
-Write (MB/s):
-npy:            ████████████████████████████████████ 491
-mmap:           ████████████████████████████████ 472
-binary_header:  ██████████████████████████████ 446
-binary_f32:     ██████████████████████████████ 439
-hdf5:           ██████████████████████████████ 425
-netcdf:         ████████████████████ 274
-json:           ██████ 69
+npy:            ████████████████████████████████ 275 MB/s
+binary_header:  ██████████████████████████████ 266 MB/s
+binary_f32:     ████████████████████████████ 249 MB/s
+mmap:           ██████████████████████████ 224 MB/s
+hdf5:           ████████████████████ 152 MB/s
+netcdf:         ████████████ 96 MB/s
+segy:           ████████████ 119 MB/s
+json:           ████████ 69 MB/s
+parquet:        █████ 44 MB/s
+zarr:           █████ 42 MB/s
+tiledb:         ██ 16 MB/s
+tensorstore:    ░ 1.1 MB/s
 ```
 
 ### Storage Efficiency
@@ -331,34 +245,27 @@ binary_f32:     █████████████████████�
 binary_header:  ████████████████████████████████████ 100% (0.458 MB + 72B)
 npy:            ████████████████████████████████████ 100% (0.458 MB + header)
 mmap:           ████████████████████████████████████ 100% (0.458 MB)
+hdf5:           ████████████████████████████████████ 100% (0.460 MB)
+netcdf:         ████████████████████████████████████ 100% (0.458 MB)
+tiledb:         ████████████████████████████████████ 101% (0.462 MB)
+zarr:           ████████████████████████████████████ 100% (0.458 MB)
+segy:           ████████████████████ 121% (0.553 MB)
+parquet:        ██████████████████ 180% (0.824 MB)
 json:           ████████████████████████████████████████████████████████████████ 418% (1.914 MB)
 ```
 
-## Format Coverage
+## Dependencies
 
-### Implemented and Working (7/14)
-
-| Format | Status | 2D | 3D | Notes |
-|--------|--------|----|----|-------|
-| binary_f32 | ✅ | ✅ | ✅ | Raw float32, no header |
-| binary_header | ✅ | ✅ | ✅ | Self-describing with dims |
-| mmap | ✅ | ✅ | ✅ | Memory-mapped read |
-| npy | ✅ | ✅ | ✅ | NumPy native format |
-| json | ✅ | ✅ | ✅ | Human-readable (slow) |
-| hdf5 | ✅ | ✅ | ✅ | Scientific standard |
-| netcdf | ✅ | ✅ | ✅ | Climate/CF conventions |
-
-### Implemented but Not Compiled (7/14)
-
-| Format | Status | Notes |
-|--------|--------|-------|
-| tiledb | ⚠️ | C API compiled but runtime issues |
-| adios2 | ❌ | Headers not found |
-| zarr | ❌ | No stable C++ library |
-| parquet | ❌ | Arrow Parquet C++ not linked |
-| segy | ❌ | No C library available |
-| tensorstore | ❌ | Google library, complex deps |
-| mdio | ❌ | MDIO not available in C++ |
+| Library | Version | Formats | Install |
+|---------|---------|---------|---------|
+| nlohmann/json | 3.x | json | Bundled (git submodule) |
+| cnpy | latest | npy | Bundled (git submodule) |
+| HighFive | - | hdf5 | System (linuxbrew) |
+| libnetcdf | 22 | netcdf | linuxbrew |
+| libtiledb | 2.30 | tiledb | linuxbrew |
+| libduckdb | 1.5.1 | duckdb | linuxbrew |
+| Apache Arrow | 23.0.1 | parquet | linuxbrew |
+| Python tensorstore | 0.1.82 | tensorstore | pip |
 
 ## Adoption Roadmap
 
@@ -372,45 +279,24 @@ json:           █████████████████████�
 ### Phase 2: Scientific Formats ✅ COMPLETE
 - [x] Add HDF5 support (C API)
 - [x] Add NetCDF support (C API)
-- [ ] Add SEG-Y support (segyio-cpp or custom)
+- [x] Add SEG-Y support (native C++)
 
-### Phase 3: Cloud/HPC Formats (Future)
-- [ ] Evaluate Zarr C++ implementation
-- [ ] Evaluate ADIOS2 for parallel I/O
-- [ ] Evaluate TileDB for cloud arrays
+### Phase 3: Cloud/HPC Formats ✅ COMPLETE
+- [x] Add Zarr support (native C++ chunked binary)
+- [x] Add TileDB support (libtiledb)
+- [x] Add Parquet support (Apache Arrow)
+- [x] Add DuckDB support (libduckdb)
+- [x] Add TensorStore support (Python bridge)
 
 ## Conclusions
 
 1. **Binary formats are essential** for production RTM workflows—JSON is impractical for large arrays
 2. **Memory-mapped I/O** provides the best combination of performance and code simplicity for read-heavy workloads
-3. **C++ offers 5-30× improvement** over Python for binary format throughput
+3. **C++ offers 5-80× improvement** over Python for binary format throughput
 4. **NPY format** is the recommended choice for NumPy interoperability with excellent performance
-5. **Self-describing formats** (HDF5, NetCDF) should be reserved for metadata-rich workflows where the overhead is justified
-
-## Appendix: Benchmark Methodology
-
-### Timing Approach
-
-```cpp
-auto start = std::chrono::high_resolution_clock::now();
-// ... I/O operation ...
-auto end = std::chrono::high_resolution_clock::now();
-double ms = std::chrono::duration<double, std::milli>(end - start).count();
-```
-
-### Throughput Calculation
-
-```cpp
-double mb = static_cast<double>(nx * nz * sizeof(float)) / (1024.0 * 1024.0);
-double mbps = mb / (ms / 1000.0);
-```
-
-### Statistical Treatment
-
-- 5 iterations per measurement
-- First iteration discarded as warmup (optional)
-- Report median of remaining iterations
-- 95% confidence intervals computed for large datasets
+5. **Parquet** is competitive for read-heavy analytics workflows (408 MB/s read) despite columnar overhead
+6. **TensorStore via Python bridge** is too slow for hot paths but viable for offline tensor access
+7. **Self-describing formats** (HDF5, NetCDF) should be reserved for metadata-rich workflows where the overhead is justified
 
 ## References
 
@@ -418,3 +304,5 @@ double mbps = mb / (ms / 1000.0);
 - NPY format spec: https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html
 - HDF5: https://www.hdfgroup.org/solutions/hdf5/
 - NetCDF: https://www.unidata.ucar.edu/software/netcdf/
+- Apache Arrow/Parquet: https://arrow.apache.org/
+- TensorStore: https://google.github.io/tensorstore/

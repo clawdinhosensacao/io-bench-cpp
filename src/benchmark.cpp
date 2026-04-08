@@ -75,8 +75,18 @@ BenchResult BenchmarkRunner::run_single(FormatAdapter& adapter) {
             write_timer.stop();
             total_write_ms += write_timer.elapsed_ms();
             
-            // Get file size after write
-            result.file_size_mb = std::filesystem::file_size(file_path) / (1024.0 * 1024.0);
+            // Get file size after write (handles both files and directories)
+            if (std::filesystem::is_directory(file_path)) {
+                std::uintmax_t dir_size = 0;
+                for (const auto& entry : std::filesystem::recursive_directory_iterator(file_path)) {
+                    if (std::filesystem::is_regular_file(entry)) {
+                        dir_size += std::filesystem::file_size(entry);
+                    }
+                }
+                result.file_size_mb = static_cast<double>(dir_size) / (1024.0 * 1024.0);
+            } else {
+                result.file_size_mb = std::filesystem::file_size(file_path) / (1024.0 * 1024.0);
+            }
             
             // Read
             Timer read_timer;
@@ -104,8 +114,8 @@ BenchResult BenchmarkRunner::run_single(FormatAdapter& adapter) {
             }
         }
         
-        // Cleanup
-        std::filesystem::remove(file_path);
+        // Cleanup (handles both files and directories)
+        std::filesystem::remove_all(file_path);
         
     } catch (const std::exception& e) {
         result.error = e.what();
