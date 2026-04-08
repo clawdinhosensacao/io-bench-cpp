@@ -1,8 +1,8 @@
 # I/O Format Benchmark (C++)
 
-A comprehensive I/O format benchmark for scientific computing arrays, implemented entirely in C++20.
+A comprehensive I/O format benchmark for scientific computing arrays, implemented entirely in C++20. Focused on **geophysics and seismic processing** workloads.
 
-## Supported Formats
+## Supported Formats (13/14 working)
 
 | Format | Status | Description |
 |--------|--------|-------------|
@@ -11,10 +11,38 @@ A comprehensive I/O format benchmark for scientific computing arrays, implemente
 | `mmap` | ✅ Always | Memory-mapped binary (POSIX) |
 | `npy` | ✅ Always | NumPy native format via cnpy |
 | `json` | ✅ Always | JSON 2D array (nlohmann/json) |
-| `hdf5` | Optional | HDF5 via HighFive |
-| `netcdf` | Optional | NetCDF4 C++ |
-| `tiledb` | Optional | TileDB dense array |
-| `adios2` | Optional | ADIOS2 BP format |
+| `hdf5` | ✅ Optional | HDF5 via HighFive |
+| `netcdf` | ✅ Optional | NetCDF4 C++ |
+| `tiledb` | ✅ Optional | TileDB dense array |
+| `zarr` | ✅ Optional | Zarr v2 via Python subprocess |
+| `segy` | ✅ Optional | SEG-Y seismic trace format via segyio |
+| `duckdb` | ✅ Optional | DuckDB columnar SQL engine |
+| `parquet` | ✅ Optional | Apache Parquet via Arrow C++ |
+| `tensorstore` | ✅ Optional | TensorStore via Python bridge |
+| `adios2` | ❌ N/A | ADIOS2 BP format (no library available) |
+| `mdio` | ❌ N/A | MDIO format (no C++ library available) |
+
+## Geophysics Presets
+
+Built-in benchmark scenarios for typical geophysics workloads:
+
+| Preset | Grid | Size | Description |
+|--------|------|------|-------------|
+| `2d-survey-line` | 480 × 1501 | 2.7 MB | 2D marine seismic survey line |
+| `2d-velocity-model` | 401 × 201 | 0.3 MB | 2D velocity model for RTM |
+| `3d-velocity-model` | 401 × 201 × 201 | 62 MB | 3D velocity model for RTM |
+| `3d-large-survey` | 600 × 400 × 300 | 275 MB | Large 3D survey volume |
+| `shot-gather` | 640 × 4001 | 9.8 MB | Single shot gather (traces × time) |
+| `checkpoint-restart` | 200 × 100 × 100 | 7.6 MB | RTM checkpoint/restart volume |
+
+```bash
+# List available presets
+./build/io_bench --list-presets
+
+# Run a geophysics preset
+./build/io_bench --preset 3d-velocity-model --output artifacts/3d_velocity.md
+./build/io_bench --preset shot-gather --output artifacts/shot_gather.md
+```
 
 ## Quick Start
 
@@ -46,8 +74,8 @@ make run
 # Full benchmark
 make bench
 
-# Fast benchmark
-make bench-fast
+# Geophysics preset
+./build/io_bench --preset 2d-velocity-model
 ```
 
 ## Usage
@@ -56,11 +84,14 @@ make bench-fast
 ./build/io_bench [options]
 
 Options:
-  --nx <n>           Grid size in X (default: 100)
-  --nz <n>           Grid size in Z (default: 80)
-  --iterations <n>   Number of iterations (default: 1)
-  --output <path>    Output markdown report path
-  --help             Show help
+  --nx <n>              Grid size in X (default: 100)
+  --nz <n>              Grid size in Z (default: 80)
+  --ny <n>              Grid size in Y for 3D (default: 1)
+  --iterations <n>      Number of iterations (default: 1)
+  --preset <name>       Use geophysics preset (overrides nx/nz/ny/iterations)
+  --list-presets        List available geophysics presets
+  --output <path>       Output markdown report path
+  --help                Show help
 ```
 
 ### Examples
@@ -69,12 +100,16 @@ Options:
 # Small test
 ./build/io_bench --nx 50 --nz 40
 
-# Production benchmark
-./build/io_bench --nx 400 --nz 300 --iterations 5 --output results.md
+# 3D benchmark
+./build/io_bench --nx 100 --nz 80 --ny 50 --iterations 3
 
-# Compare with Python version
-./build/io_bench --nx 80 --nz 100 --iterations 3 --output cpp_results.md
-cd ../rtm3d-cli && python3 scripts/io_format_benchmark.py --nx 80 --nz 100 --iterations 3 --report python_results.md
+# Geophysics presets
+./build/io_bench --preset 2d-survey-line
+./build/io_bench --preset 3d-velocity-model
+./build/io_bench --preset shot-gather
+
+# Production benchmark with report
+./build/io_bench --preset 3d-velocity-model --output results.md
 ```
 
 ## Building with CMake
@@ -86,14 +121,14 @@ cmake --build build -j$(nproc)
 
 ### Optional Dependencies
 
-To enable HDF5, NetCDF, TileDB, or ADIOS2 support:
+To enable HDF5, NetCDF, TileDB, SEG-Y, Parquet, DuckDB, or Zarr support:
 
 ```bash
 # Ubuntu
-apt install libhdf5-dev libnetcdf-c++4-dev libtiledb-dev libadios2-dev
+apt install libhdf5-dev libnetcdf-c++4-dev libtiledb-dev
+pip install segyio zarr tensorstore
 
-# CMake will auto-detect
-cmake -S . -B build
+# CMake / Make will auto-detect available libraries
 ```
 
 ## Output Format
@@ -101,11 +136,11 @@ cmake -S . -B build
 The benchmark outputs a markdown table:
 
 ```
-| Format | Status | Size (MB) | Write (ms) | Read (ms) | Write MB/s | Read MB/s | Notes |
-|--------|--------|-----------|------------|-----------|------------|-----------|-------|
-| binary_f32 | ✅ | 0.031 | 0.05 | 0.03 | 620 | 1033 | - |
-| npy | ✅ | 0.032 | 0.12 | 0.08 | 258 | 387 | - |
-| json | ✅ | 0.158 | 1.45 | 2.12 | 109 | 74 | - |
+| Format | Status | Size (MB) | Write (ms) | Read (ms) | Write MB/s | Read MB/s |
+|--------|--------|-----------|------------|-----------|------------|----------|
+| binary_f32 | OK | 0.031 | 0.05 | 0.03 | 620 | 1033 |
+| npy | OK | 0.032 | 0.12 | 0.08 | 258 | 387 |
+| hdf5 | OK | 0.032 | 0.38 | 0.14 | 85 | 233 |
 ...
 ```
 
@@ -136,23 +171,6 @@ int main() {
     return 0;
 }
 ```
-
-## Comparison with Python
-
-This C++ implementation mirrors the Python benchmark in `rtm3d-cli/scripts/io_format_benchmark.py`:
-
-| Aspect | Python | C++ |
-|--------|--------|-----|
-| JSON | nlohmann/json | json module |
-| Binary | std::ofstream | numpy.tofile |
-| NPY | cnpy | numpy |
-| HDF5 | HighFive | h5py |
-| Memory map | POSIX mmap | numpy.memmap |
-
-Expected performance difference: C++ should show 10-50% higher throughput due to:
-- No interpreter overhead
-- Direct filesystem I/O
-- Compile-time optimizations
 
 ## Test
 

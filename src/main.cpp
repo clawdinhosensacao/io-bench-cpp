@@ -5,6 +5,36 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
+#include <vector>
+
+/// Geophysics-relevant benchmark presets
+struct GeoPreset {
+    std::string name;
+    std::string description;
+    std::size_t nx, nz, ny;
+    std::size_t iterations;
+};
+
+static const std::vector<GeoPreset> geo_presets = {
+    {"2d-survey-line",
+     "2D seismic survey line (typical 2D marine: 480 traces × 1501 samples)",
+     480, 1501, 1, 3},
+    {"2d-velocity-model",
+     "2D velocity model for RTM (typical: 401 × 201 grid, 10m spacing)",
+     401, 201, 1, 3},
+    {"3d-velocity-model",
+     "3D velocity model for RTM (typical: 401 × 201 × 201, ~60 MB float32)",
+     401, 201, 201, 2},
+    {"3d-large-survey",
+     "Large 3D survey volume (600 × 400 × 300, ~275 MB float32)",
+     600, 400, 300, 1},
+    {"shot-gather",
+     "Single shot gather (640 receivers × 4001 time samples, ~10 MB)",
+     640, 4001, 1, 5},
+    {"checkpoint-restart",
+     "RTM checkpoint/restart volume (200 × 100 × 100, ~8 MB, many iterations)",
+     200, 100, 100, 10},
+};
 
 void print_usage(const char* prog) {
     std::cout << "Usage: " << prog << " [options]\n\n"
@@ -13,13 +43,36 @@ void print_usage(const char* prog) {
               << "  --nz <n>           Grid size in Z (default: 80)\n"
               << "  --ny <n>           Grid size in Y for 3D (default: 1)\n"
               << "  --iterations <n>   Number of iterations (default: 1)\n"
+              << "  --preset <name>    Use geophysics preset (overrides nx/nz/ny/iterations)\n"
+              << "  --list-presets     List available geophysics presets\n"
               << "  --output <path>    Output markdown report path\n"
-              << "  --help             Show this message\n";
+              << "  --help             Show this message\n\n"
+              << "Geophysics Presets:\n";
+    for (const auto& p : geo_presets) {
+        const double mb = static_cast<double>(p.nx * p.nz * p.ny) * sizeof(float) / (1024.0 * 1024.0);
+        std::cout << "  " << p.name << "\n"
+                  << "    " << p.description << "\n"
+                  << "    Grid: " << p.nx << " × " << p.nz << " × " << p.ny
+                  << " (" << mb << " MB, " << p.iterations << " iter)\n\n";
+    }
+}
+
+void list_presets() {
+    std::cout << "Available geophysics presets:\n\n";
+    for (const auto& p : geo_presets) {
+        const double mb = static_cast<double>(p.nx * p.nz * p.ny) * sizeof(float) / (1024.0 * 1024.0);
+        std::cout << "  " << p.name << "\n"
+                  << "    " << p.description << "\n"
+                  << "    Grid: " << p.nx << " × " << p.nz << " × " << p.ny
+                  << " (" << mb << " MB, " << p.iterations << " iter)\n\n";
+    }
 }
 
 int main(int argc, char* argv[]) {
     io_bench::BenchConfig config;
     std::string output_path;
+    std::string preset_name;
+    bool list_only = false;
     
     // Parse arguments
     for (int i = 1; i < argc; ++i) {
@@ -46,10 +99,39 @@ int main(int argc, char* argv[]) {
             config.ny = std::stoul(get_value());
         } else if (arg == "--iterations") {
             config.iterations = std::stoul(get_value());
+        } else if (arg == "--preset") {
+            preset_name = get_value();
+        } else if (arg == "--list-presets") {
+            list_only = true;
         } else if (arg == "--output") {
             output_path = get_value();
         } else {
             std::cerr << "Error: unknown option " << arg << "\n";
+            return 1;
+        }
+    }
+
+    if (list_only) {
+        list_presets();
+        return 0;
+    }
+
+    // Apply preset if specified
+    if (!preset_name.empty()) {
+        bool found = false;
+        for (const auto& p : geo_presets) {
+            if (p.name == preset_name) {
+                config.nx = p.nx;
+                config.nz = p.nz;
+                config.ny = p.ny;
+                config.iterations = p.iterations;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            std::cerr << "Error: unknown preset '" << preset_name << "'\n";
+            std::cerr << "Use --list-presets to see available presets.\n";
             return 1;
         }
     }
@@ -60,6 +142,9 @@ int main(int argc, char* argv[]) {
         std::cout << "Grid: " << config.nx << " x " << config.nz << " x " << config.ny << " (3D)\n";
     } else {
         std::cout << "Grid: " << config.nx << " x " << config.nz << "\n";
+    }
+    if (!preset_name.empty()) {
+        std::cout << "Preset: " << preset_name << "\n";
     }
     std::cout << "Iterations: " << config.iterations << "\n\n";
     
