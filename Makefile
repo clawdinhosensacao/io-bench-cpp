@@ -47,11 +47,11 @@ build/io_bench: build fetch-deps $(SRCS) src/main.cpp
 
 build/io_bench_tests: build fetch-deps $(SRCS) $(GTEST_DIR)
 	$(CXX) $(CXXFLAGS) -I $(GTEST_DIR)/googletest/include \
-		$(SRCS) tests/test_benchmark.cpp tests/test_formats.cpp \
+		$(SRCS) tests/test_benchmark.cpp tests/test_formats.cpp tests/test_geo_formats.cpp \
 		$(GTEST_DIR)/googletest/src/gtest-all.cc \
 		$(GTEST_DIR)/googletest/src/gtest_main.cc \
 		-I $(GTEST_DIR)/googletest \
-		-lz $(LDFLAGS) -lpthread -o $@
+		-lz $(LDFLAGS) -lm -lpthread -o $@
 
 test: build/io_bench_tests
 	./build/io_bench_tests
