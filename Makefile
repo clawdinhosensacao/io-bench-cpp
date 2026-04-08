@@ -35,7 +35,7 @@ CXXFLAGS += -I third_party/json/include -I third_party/cnpy
 SRCS = src/benchmark.cpp src/report.cpp src/formats.cpp \
        src/formats/binary.cpp src/formats/npy.cpp src/formats/json.cpp \
        src/formats/hdf5.cpp src/formats/netcdf.cpp src/formats/tiledb.cpp \
-       src/formats/adios2.cpp src/formats/extra.cpp \
+       src/formats/adios2.cpp \
        src/formats/zarr.cpp src/formats/segy.cpp src/formats/duckdb.cpp \
        src/formats/parquet.cpp src/formats/tensorstore.cpp \
        src/formats/mdio.cpp src/formats/miniseed.cpp \
