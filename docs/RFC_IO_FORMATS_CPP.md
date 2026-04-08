@@ -1,13 +1,13 @@
-# RFC: I/O Format Selection for RTM Workflows (C++ Implementation)
+# RFC: I/O Format Selection for Seismic & Geophysics Workflows (C++ Implementation)
 
 **Status:** Draft  
 **Author:** io-bench-cpp benchmark  
-**Date:** 2026-04-07 (updated)  
+**Date:** 2026-04-08 (updated)  
 **Related:** Python benchmark results (rtm3d-cli/scripts/io_format_benchmark.py)
 
 ## Summary
 
-This RFC presents a comprehensive I/O format benchmark implemented in C++ to guide format selection for high-performance RTM (Reverse Time Migration) workflows. The benchmark compares throughput characteristics across multiple storage formats commonly used in scientific computing.
+This RFC presents a comprehensive I/O format benchmark implemented in C++ to guide format selection for high-performance seismic and geophysics workflows. The benchmark compares throughput characteristics across **15 storage formats** — including geophysics-native formats (SEG-Y, MDIO, MiniSEED) — with built-in geophysics preset scenarios.
 
 ## Motivation
 
@@ -17,110 +17,110 @@ Previous benchmark work in Python (rtm3d-cli) provided valuable insights, but C+
 3. Elimination of Python interpreter overhead
 4. Direct comparison with the actual RTM implementation language
 
+### Why Geophysics-Specific Benchmarking?
+
+Seismic workflows have unique I/O characteristics:
+- **Large 3D volumes**: velocity models (401×201×201 ≈ 62 MB), migration outputs (GB-scale)
+- **Trace-based access**: shot gathers stored as sequential traces (SEG-Y, MiniSEED)
+- **Cloud-native shift**: MDIO, Zarr, TileDB for cloud object storage
+- **Checkpoint/restart**: RTM needs fast full-volume write + read-back for fault tolerance
+
 ## Hardware Specification
 
-The benchmarks were run on the following hardware configuration:
-
-### CPU
 | Parameter | Value |
 |-----------|-------|
-| Model | AMD EPYC 7543P 32-Core Processor |
-| Cores | 2 (allocated) |
-| Threads | 1 per core |
-| Architecture | x86_64 |
-| Clock | ~2.8 GHz (base) |
-
-### Memory
-| Parameter | Value |
-|-----------|-------|
-| Total RAM | 7.8 GiB |
-| Available | 6.7 GiB |
-| Type | DDR4 ECC |
-| Swap | 0 B |
-
-### Storage
-| Parameter | Value |
-|-----------|-------|
-| Type | Overlay filesystem (Docker container) |
-| Backend | SSD (estimated) |
-| Total | 96 GB |
-| Available | 77 GB |
-| Mount | / (root) |
-
-### Operating System
-| Parameter | Value |
-|-----------|-------|
-| Kernel | Linux 6.8.0-94-generic |
-| Distribution | Ubuntu 22.04 (container) |
-| Architecture | x86_64 |
-
-### Benchmark Configuration
-| Parameter | Value |
-|-----------|-------|
-| Compiler | g++ 13 |
-| Optimization | -O3 |
-| C++ Standard | C++20 |
+| CPU | AMD EPYC 7543P 32-Core (2 cores allocated) |
+| RAM | 7.8 GiB DDR4 ECC |
+| Storage | Overlay filesystem (Docker container, SSD backend) |
+| OS | Ubuntu 22.04 (container), Linux 6.8.0-94-generic |
+| Compiler | g++ 13, -O3, C++20 |
 
 ## Format Coverage
 
-### Implemented and Working (13/14)
+### Implemented and Working (14/15)
 
-| Format | Status | 2D | 3D | Implementation | Notes |
-|--------|--------|----|----|----------------|-------|
-| binary_f32 | ✅ | ✅ | ✅ | Native | Raw float32, no header |
-| binary_header | ✅ | ✅ | ✅ | Native | Self-describing with dims |
-| mmap | ✅ | ✅ | ✅ | POSIX mmap | Zero-copy, OS-managed |
-| npy | ✅ | ✅ | ✅ | cnpy | NumPy native format |
-| json | ✅ | ✅ | ✅ | nlohmann/json | Human-readable (slow) |
-| hdf5 | ✅ | ✅ | ✅ | HighFive/C API | Scientific standard |
-| netcdf | ✅ | ✅ | ✅ | libnetcdf | Climate/CF conventions |
-| tiledb | ✅ | ✅ | ✅ | libtiledb | Cloud arrays |
-| zarr | ✅ | ✅ | ✅ | Native C++ | Chunked binary + JSON |
-| parquet | ✅ | ✅ | ✅ | Apache Arrow | Columnar storage |
-| segy | ✅ | ✅ | ✅ | Native C++ | SEG-Y rev1 |
-| duckdb | ✅ | ✅ | ✅ | libduckdb | SQL database |
-| tensorstore | ✅ | ✅ | ✅ | Python bridge | Google TensorStore via zarr |
-| mdio | ❌ | - | - | N/A | No C++ library available |
+| Format | 2D | 3D | Implementation | Geophysics Relevance |
+|--------|----|----|----------------|---------------------|
+| binary_f32 | ✅ | ✅ | Native C++ | Velocity model, checkpoint |
+| binary_header | ✅ | ✅ | Native C++ | Self-describing velocity |
+| mmap | ✅ | ✅ | POSIX mmap | Zero-copy wavefield access |
+| npy | ✅ | ✅ | cnpy | NumPy ecosystem interop |
+| json | ✅ | ✅ | nlohmann/json | Config/metadata only |
+| hdf5 | ✅ | ✅ | HighFive/C API | SEGY-derived, ASDF base |
+| netcdf | ✅ | ✅ | libnetcdf | Climate, CF conventions |
+| tiledb | ✅ | ✅ | libtiledb | Cloud-native arrays |
+| zarr | ✅ | ✅ | Native C++ | Cloud chunked storage |
+| parquet | ✅ | ✅ | Apache Arrow | Analytics pipelines |
+| segy | ✅ | ✅ | Native C++ | **Seismic industry standard** |
+| duckdb | ✅ | ✅ | libduckdb | SQL analytics on traces |
+| tensorstore | ✅ | ✅ | Python bridge | ML tensor storage |
+| mdio | ✅ | ✅ | Python bridge | **Cloud-native seismic (TGS)** |
+| miniseed | ✅ | ✅ | Python bridge | **Seismological time series** |
+| adios2 | ❌ | ❌ | N/A | No library available |
+
+## Geophysics Benchmark Presets
+
+Built-in scenarios for typical geophysics workloads:
+
+| Preset | Grid | Size | Use Case |
+|--------|------|------|----------|
+| `2d-survey-line` | 480×1501 | 2.7 MB | 2D marine seismic line |
+| `2d-velocity-model` | 401×201 | 0.3 MB | 2D velocity model for RTM |
+| `3d-velocity-model` | 401×201×201 | 62 MB | 3D velocity model for RTM |
+| `3d-large-survey` | 600×400×300 | 275 MB | Large 3D survey volume |
+| `shot-gather` | 640×4001 | 9.8 MB | Single shot gather |
+| `checkpoint-restart` | 200×100×100 | 7.6 MB | RTM checkpoint/restart |
 
 ## Benchmark Results
 
-### Test Configuration
+### Shot Gather Preset (640×4001, ~10 MB, 5 iterations)
 
-| Parameter | Small | Medium | Large |
-|-----------|-------|--------|-------|
-| Grid size | 80×100 | 400×300 | 800×600 |
-| Data size | 0.031 MB | 0.458 MB | 1.83 MB |
-| Iterations | 3 | 5 | 10 |
-| Compiler | g++ -O3 -std=c++20 |
+| Format | Write MB/s | Read MB/s | Size (MB) | Category |
+|--------|-----------|-----------|-----------|----------|
+| **hdf5** | 394.8 | **4076.9** | 9.770 | Scientific |
+| **binary_header** | 367.3 | 3894.7 | 9.768 | Binary |
+| **mmap** | 372.0 | 2842.7 | 9.768 | Binary |
+| **npy** | 386.2 | 1950.5 | 9.768 | Binary |
+| **binary_f32** | 339.1 | 1016.8 | 9.768 | Binary |
+| **netcdf** | 240.8 | 1107.3 | 9.768 | Scientific |
+| **parquet** | 59.2 | 484.3 | 14.502 | Columnar |
+| **tiledb** | 115.3 | 447.3 | 9.774 | Cloud |
+| **segy** | 120.6 | 158.5 | 9.918 | **Seismic** |
+| **zarr** | 57.2 | 114.0 | 9.768 | Cloud |
+| **miniseed** | 17.0 | 17.4 | 9.906 | **Seismology** |
+| **json** | 64.9 | 36.7 | 40.826 | Text |
+| **tensorstore** | 6.0 | 26.3 | 8.641 | Python bridge |
+| **mdio** | 2.2 | 2.2 | 8.550 | **Seismic (cloud)** |
 
-### Throughput Results (Medium: 400×300 float32, 2D)
+### 2D Velocity Model Preset (401×201, ~0.3 MB, 3 iterations)
 
-| Format | Write MB/s | Read MB/s | Size (MB) | Notes |
-|--------|-----------|-----------|-----------|-------|
-| **binary_header** | 265.5 | **6275.1** | 0.458 | Best read throughput |
-| **npy** | **275.3** | 2705.9 | 0.458 | Best write, portable |
-| **mmap** | 223.5 | 2831.6 | 0.458 | Zero-copy, OS-managed |
-| **hdf5** | 152.0 | 1839.0 | 0.460 | Self-describing, metadata |
-| **binary_f32** | 248.6 | 1578.8 | 0.458 | Simplest, no header |
-| **netcdf** | 96.2 | 675.8 | 0.458 | CF conventions |
-| **parquet** | 44.3 | 407.8 | 0.824 | Columnar, 1.8× size |
-| **segy** | 119.1 | 134.1 | 0.553 | Industry standard |
-| **zarr** | 42.3 | 96.6 | 0.458 | Chunked, cloud-ready |
-| **tiledb** | 16.3 | 115.4 | 0.462 | Cloud-native |
-| **json** | 69.1 | 37.4 | 1.914 | 4.2× size overhead |
-| **tensorstore** | 1.1 | 1.5 | 0.415 | Python subprocess overhead |
+| Format | Write MB/s | Read MB/s | Size (MB) |
+|--------|-----------|-----------|-----------|
+| binary_header | 198.2 | 4534.0 | 0.307 |
+| mmap | 217.8 | 2754.6 | 0.307 |
+| npy | 251.3 | 2666.9 | 0.308 |
+| hdf5 | 280.6 | 1885.3 | 0.309 |
+| binary_f32 | 171.7 | 1475.0 | 0.307 |
+| netcdf | 139.9 | 737.1 | 0.308 |
+| parquet | 48.3 | 376.6 | 0.552 |
+| segy | 127.9 | 107.3 | 0.403 |
+| tiledb | 13.7 | 112.8 | 0.312 |
+| zarr | 46.2 | 96.9 | 0.308 |
+| json | 71.6 | 43.2 | 1.286 |
+| miniseed | 0.6 | 0.6 | 0.312 |
+| mdio | 0.1 | 0.1 | 0.270 |
 
 ### Key Observations
 
-1. **Binary formats dominate**: Raw binary variants achieve 1579-6275 MB/s read, 249-275 MB/s write
-2. **Memory-mapped I/O**: Excellent read (2832 MB/s) with zero-copy semantics
-3. **Parquet competitive**: 408 MB/s read with columnar structure, 1.8× size overhead
-4. **Zarr viable**: 97 MB/s read in native C++, cloud-compatible
-5. **TensorStore overhead**: Python bridge adds significant latency (1-2 MB/s), suitable only for offline workflows
-6. **JSON overhead**: 4.2× size bloat, 168× slower read than binary_header
-7. **TileDB slow write**: 16.3 MB/s write, but reasonable read at 115 MB/s
+1. **Binary formats dominate**: Raw binary variants achieve 1000-4500 MB/s read for shot gathers
+2. **HDF5 best for large reads**: 4077 MB/s read at 10 MB scale — excellent for velocity model loading
+3. **SEG-Y competitive at scale**: 120 MB/s write, 159 MB/s read — acceptable for industry standard
+4. **MiniSEED 10× faster than MDIO**: 17 MB/s vs 2 MB/s — both via Python bridge, but obspy is leaner
+5. **MDIO slowest**: Python subprocess + xarray + zarr stack = 2 MB/s — viable only for offline cloud workflows
+6. **Parquet strong read**: 484 MB/s read at 10 MB, despite 1.5× size overhead
+7. **JSON impractical**: 4.2× size bloat, 100× slower read than binary_header
 
-### C++ vs Python Comparison
+### C++ vs Python Comparison (Medium: 400×300)
 
 | Format | C++ Read MB/s | Python Read MB/s | Speedup |
 |--------|--------------|------------------|---------|
@@ -128,131 +128,72 @@ The benchmarks were run on the following hardware configuration:
 | npy | 2705.9 | 88.0 | **30.8×** |
 | hdf5 | 1839.0 | 23.0 | **79.9×** |
 | netcdf | 675.8 | 27.0 | **25.0×** |
-| json | 37.4 | 27.0 | 1.4× |
 | parquet | 407.8 | 42.0 | **9.7×** |
 | zarr | 96.6 | 31.0 | **3.1×** |
 
-C++ implementation shows dramatic improvements for binary and scientific formats due to:
-- Direct memory access without Python object creation
-- No NumPy array allocation overhead
-- Compiler optimizations (SIMD, loop unrolling)
-- Lower-level C library bindings (HDF5, NetCDF C APIs)
+## Format Recommendations by Geophysics Use Case
 
-## Format Recommendations
+### RTM Processing (Hot Paths)
 
-### Tier 1: Production Hot Paths
+| Use Case | Recommended | Alternative | Rationale |
+|----------|-------------|-------------|-----------|
+| Velocity model load | `binary_header` | `mmap`, `hdf5` | Fastest read, metadata in header |
+| RTM checkpoint | `binary_f32` | `npy` | Simplest, fastest write |
+| Migration output | `segy` | `hdf5` | Industry standard output |
+| Wavefield snapshot | `mmap` | `binary_header` | Zero-copy, OS page cache |
 
-| Use Case | Recommended Format | Rationale |
-|----------|-------------------|-----------|
-| Velocity model loading | `binary_header` or `mmap` | Maximum throughput, metadata in header |
-| RTM checkpoint/restart | `binary_f32` | Simplest, fastest write |
-| Seismic trace data | `segy` | Industry standard (when available) |
+### Seismic Data Management
 
-### Tier 2: Interoperability
+| Use Case | Recommended | Alternative | Rationale |
+|----------|-------------|-------------|-----------|
+| Survey archive | `segy` | `mdio` | Industry standard, widest tool support |
+| Cloud storage | `mdio` | `zarr` | Seismic-specific chunking + metadata |
+| Real-time streams | `miniseed` | — | Seismological standard, trace-based |
+| Analytics/ML | `parquet` | `zarr` | Columnar, good read throughput |
 
-| Use Case | Recommended Format | Rationale |
-|----------|-------------------|-----------|
+### Interoperability
+
+| Use Case | Recommended | Rationale |
+|----------|-------------|-----------|
 | NumPy ecosystem | `npy` | Native format, best write throughput |
-| MATLAB users | `npy` | scipy.io.loadmat alternative |
-| Self-describing | `hdf5` | Rich metadata, hierarchical, excellent read |
+| MATLAB users | `hdf5` | Widest cross-platform support |
+| Self-describing archive | `hdf5` | Rich metadata, hierarchical |
 | Climate/science | `netcdf` | CF conventions, metadata |
-| Analytics pipelines | `parquet` | Columnar, good read (408 MB/s) |
+| SQL analytics | `duckdb` | In-process SQL on seismic data |
 
-### Tier 3: Cloud/Distributed
-
-| Use Case | Recommended Format | Rationale |
-|----------|-------------------|-----------|
-| Cloud object storage | `zarr` | Chunked, parallel access |
-| Cloud-native arrays | `tiledb` | Cloud-optimized, good read |
-| Offline tensor access | `tensorstore` | Python bridge, for non-hot paths |
-
-### Not Recommended
+### Not Recommended for Production
 
 | Format | Issue |
 |--------|-------|
-| `json` | 4× size overhead, 168× slower read than binary_header |
-| `duckdb` (row insert) | Extremely slow for array data |
-| `tensorstore` (hot path) | Python subprocess overhead, 1-2 MB/s |
+| `json` | 4× size overhead, 100× slower read than binary |
+| `tensorstore` (hot path) | Python subprocess overhead |
+| `mdio` (hot path) | Python subprocess + xarray overhead, 2 MB/s |
+| `duckdb` (bulk array) | Row-based insert, not designed for dense arrays |
 
 ## Implementation Details
 
-### New: Parquet Format (`src/formats/parquet.cpp`)
+### Native C++ Formats
+- **binary_f32 / binary_header / mmap**: Zero-dependency, maximum performance
+- **npy**: Via cnpy header-only library
+- **json**: Via nlohmann/json header-only library
+- **segy**: Native C++ SEG-Y rev1 writer/reader with EBCDIC + binary headers
 
-**Implementation**: Apache Arrow C++ API
+### C Library Bindings
+- **hdf5**: HighFive wrapper + C API for chunked I/O
+- **netcdf**: libnetcdf C API
+- **tiledb**: libtiledb C API for dense arrays
+- **duckdb**: libduckdb C API for SQL queries
+- **parquet**: Apache Arrow C++ API, long-format columnar storage
 
-**Design**:
-- Long-format storage: columns (ix, iy, iz, value) per row
-- Uses Arrow builders for efficient column construction
-- Apache Arrow 23.0.1 with Parquet support
-- 1.8× size overhead vs raw binary (index columns)
+### Python Bridge Formats
+- **zarr**: Direct zarr v2 write/read via Python subprocess
+- **tensorstore**: Python tensorstore → zarr driver
+- **mdio**: mdio.to_mdio / open_mdio via Python subprocess (requires `multidimio` package)
+- **miniseed**: obspy Trace → miniSEED via Python subprocess (requires `obspy` package)
 
-### New: TensorStore Format (`src/formats/tensorstore.cpp`)
-
-**Implementation**: Python subprocess bridge
-
-**Design**:
-- C++ writes raw binary, invokes Python tensorstore to write zarr
-- Read path: Python tensorstore reads zarr, dumps binary, C++ loads
-- Uses temporary Python script files to avoid shell quoting issues
-- Stores as zarr v2 format via TensorStore's zarr driver
-
-### Updated: Benchmark Directory Support
-
-**Fix**: `benchmark.cpp` now handles directory-based formats (zarr, tensorstore)
-- `file_size` uses `recursive_directory_iterator` for directories
-- Cleanup uses `remove_all` instead of `remove` for directories
-
-## Performance Analysis
-
-### Read Throughput Hierarchy (400×300)
-
-```
-binary_header:  ████████████████████████████████████████████ 6275 MB/s
-npy:            ████████████████████████████████ 2706 MB/s
-mmap:           ██████████████████████████████ 2832 MB/s
-hdf5:           ████████████████████████ 1839 MB/s
-binary_f32:     ████████████████████ 1579 MB/s
-netcdf:         █████████ 676 MB/s
-parquet:        ██████ 408 MB/s
-segy:           ██ 134 MB/s
-tiledb:         █ 115 MB/s
-zarr:           █ 97 MB/s
-json:           █ 37 MB/s
-tensorstore:    ░ 1.5 MB/s
-```
-
-### Write Throughput Hierarchy (400×300)
-
-```
-npy:            ████████████████████████████████ 275 MB/s
-binary_header:  ██████████████████████████████ 266 MB/s
-binary_f32:     ████████████████████████████ 249 MB/s
-mmap:           ██████████████████████████ 224 MB/s
-hdf5:           ████████████████████ 152 MB/s
-netcdf:         ████████████ 96 MB/s
-segy:           ████████████ 119 MB/s
-json:           ████████ 69 MB/s
-parquet:        █████ 44 MB/s
-zarr:           █████ 42 MB/s
-tiledb:         ██ 16 MB/s
-tensorstore:    ░ 1.1 MB/s
-```
-
-### Storage Efficiency
-
-```
-binary_f32:     ████████████████████████████████████ 100% (0.458 MB)
-binary_header:  ████████████████████████████████████ 100% (0.458 MB + 72B)
-npy:            ████████████████████████████████████ 100% (0.458 MB + header)
-mmap:           ████████████████████████████████████ 100% (0.458 MB)
-hdf5:           ████████████████████████████████████ 100% (0.460 MB)
-netcdf:         ████████████████████████████████████ 100% (0.458 MB)
-tiledb:         ████████████████████████████████████ 101% (0.462 MB)
-zarr:           ████████████████████████████████████ 100% (0.458 MB)
-segy:           ████████████████████ 121% (0.553 MB)
-parquet:        ██████████████████ 180% (0.824 MB)
-json:           ████████████████████████████████████████████████████████████████ 418% (1.914 MB)
-```
+> **Note**: Python bridge formats have inherent subprocess overhead (~500ms startup).
+> Their throughput numbers reflect this overhead and are not directly comparable to
+> native C++ formats. They are included for format coverage and cloud workflow relevance.
 
 ## Dependencies
 
@@ -260,49 +201,59 @@ json:           █████████████████████�
 |---------|---------|---------|---------|
 | nlohmann/json | 3.x | json | Bundled (git submodule) |
 | cnpy | latest | npy | Bundled (git submodule) |
-| HighFive | - | hdf5 | System (linuxbrew) |
+| HighFive | — | hdf5 | linuxbrew |
 | libnetcdf | 22 | netcdf | linuxbrew |
 | libtiledb | 2.30 | tiledb | linuxbrew |
 | libduckdb | 1.5.1 | duckdb | linuxbrew |
 | Apache Arrow | 23.0.1 | parquet | linuxbrew |
 | Python tensorstore | 0.1.82 | tensorstore | pip |
+| Python multidimio | 1.1.2 | mdio | pip (requires Python 3.11-3.13) |
+| Python obspy | 1.5.0 | miniseed | pip |
 
 ## Adoption Roadmap
 
 ### Phase 1: Core Formats ✅ COMPLETE
-- [x] Implement `binary_f32` read/write
-- [x] Implement `binary_header` with metadata
-- [x] Implement `mmap` zero-copy reader
-- [x] Implement `npy` format via cnpy
-- [x] Implement `json` format via nlohmann/json
+- [x] binary_f32, binary_header, mmap, npy, json
 
 ### Phase 2: Scientific Formats ✅ COMPLETE
-- [x] Add HDF5 support (C API)
-- [x] Add NetCDF support (C API)
-- [x] Add SEG-Y support (native C++)
+- [x] hdf5, netcdf, segy (native C++)
 
 ### Phase 3: Cloud/HPC Formats ✅ COMPLETE
-- [x] Add Zarr support (native C++ chunked binary)
-- [x] Add TileDB support (libtiledb)
-- [x] Add Parquet support (Apache Arrow)
-- [x] Add DuckDB support (libduckdb)
-- [x] Add TensorStore support (Python bridge)
+- [x] zarr, tiledb, parquet, duckdb, tensorstore
+
+### Phase 4: Geophysics-Native Formats ✅ COMPLETE
+- [x] mdio (cloud-native seismic via Python bridge)
+- [x] miniseed (seismological time series via obspy)
+
+### Phase 5: Geophysics Presets ✅ COMPLETE
+- [x] 6 built-in presets: 2d-survey-line, 2d-velocity-model, 3d-velocity-model, 3d-large-survey, shot-gather, checkpoint-restart
+
+### Future Considerations
+- [ ] OpenVDS (Equinor cloud-optimized seismic, C++ native)
+- [ ] ASDF (Adaptable Seismic Data Format, HDF5-based)
+- [ ] RSF (Madagascar Regularly Sampled Format)
+- [ ] Native C++ libmseed adapter (replace Python bridge)
+- [ ] ADIOS2 BP format (if library becomes available)
+- [ ] Streaming/append benchmark mode
 
 ## Conclusions
 
-1. **Binary formats are essential** for production RTM workflows—JSON is impractical for large arrays
-2. **Memory-mapped I/O** provides the best combination of performance and code simplicity for read-heavy workloads
-3. **C++ offers 5-80× improvement** over Python for binary format throughput
-4. **NPY format** is the recommended choice for NumPy interoperability with excellent performance
-5. **Parquet** is competitive for read-heavy analytics workflows (408 MB/s read) despite columnar overhead
-6. **TensorStore via Python bridge** is too slow for hot paths but viable for offline tensor access
-7. **Self-describing formats** (HDF5, NetCDF) should be reserved for metadata-rich workflows where the overhead is justified
+1. **Binary formats are essential** for production RTM hot paths — JSON is impractical for large arrays
+2. **HDF5 is the best general-purpose format** for seismic: 4 GB/s read, rich metadata, wide tool support
+3. **SEG-Y remains viable** at scale: 120-159 MB/s, universal tool compatibility
+4. **MiniSEED fills the seismology niche**: trace-based, real-time streaming, 17 MB/s via Python
+5. **MDIO is cloud-native but slow**: 2 MB/s via Python bridge — suitable only for offline cloud workflows
+6. **C++ offers 5-80× improvement** over Python for native format throughput
+7. **Parquet strong for analytics**: 484 MB/s read with columnar structure, good for ML pipelines
+8. **Geophysics presets enable targeted benchmarking** for realistic seismic workloads
 
 ## References
 
 - Python benchmark: `rtm3d-cli/scripts/io_format_benchmark.py`
-- NPY format spec: https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html
+- SEG-Y format: https://library.seg.org/pb-assets/technical-standards/seg_y_rev1.pdf
+- MDIO: https://github.com/TGSAI/mdio-python
+- MiniSEED / libmseed: https://earthscope.github.io/libmseed/
+- NPY format: https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html
 - HDF5: https://www.hdfgroup.org/solutions/hdf5/
-- NetCDF: https://www.unidata.ucar.edu/software/netcdf/
 - Apache Arrow/Parquet: https://arrow.apache.org/
-- TensorStore: https://google.github.io/tensorstore/
+- obspy: https://docs.obspy.org/
