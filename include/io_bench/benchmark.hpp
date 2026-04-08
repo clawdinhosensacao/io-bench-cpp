@@ -17,16 +17,16 @@ public:
     void add_format(std::unique_ptr<FormatAdapter> adapter);
     
     /// Run all benchmarks
-    std::vector<BenchResult> run_all();
+    [[nodiscard]] std::vector<BenchResult> run_all();
     
     /// Run benchmark for a single format
-    BenchResult run_single(FormatAdapter& adapter);
+    [[nodiscard]] BenchResult run_single(FormatAdapter& adapter);
     
     /// Generate test data
-    std::vector<float> generate_data(const ArrayShape& shape, unsigned int seed = 0);
+    [[nodiscard]] std::vector<float> generate_data(const ArrayShape& shape, unsigned int seed = 0);
     
     /// Get current configuration
-    const BenchConfig& config() const { return config_; }
+    [[nodiscard]] const BenchConfig& config() const { return config_; }
     
 private:
     BenchConfig config_;

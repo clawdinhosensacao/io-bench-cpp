@@ -37,11 +37,11 @@ struct ArrayShape {
     std::size_t nz;
     std::size_t ny = 1;  // For 3D arrays
     
-    std::size_t total() const { return nx * nz * ny; }
-    std::size_t bytes() const { return total() * sizeof(float); }
-    double mb() const { return static_cast<double>(bytes()) / (1024.0 * 1024.0); }
+    [[nodiscard]] std::size_t total() const { return nx * nz * ny; }
+    [[nodiscard]] std::size_t bytes() const { return total() * sizeof(float); }
+    [[nodiscard]] double mb() const { return static_cast<double>(bytes()) / (1024.0 * 1024.0); }
     
-    bool is_3d() const { return ny > 1; }
+    [[nodiscard]] bool is_3d() const { return ny > 1; }
 };
 
 /// Timer helper class
@@ -51,11 +51,11 @@ public:
     
     void stop() { end_ = std::chrono::high_resolution_clock::now(); }
     
-    double elapsed_ms() const {
+    [[nodiscard]] double elapsed_ms() const {
         return std::chrono::duration<double, std::milli>(end_ - start_).count();
     }
     
-    double elapsed_s() const {
+    [[nodiscard]] double elapsed_s() const {
         return std::chrono::duration<double>(end_ - start_).count();
     }
     
@@ -68,11 +68,11 @@ private:
 class FormatAdapter {
 public:
     virtual ~FormatAdapter() = default;
-    virtual std::string name() const = 0;
-    virtual bool is_available() const = 0;
+    [[nodiscard]] virtual std::string name() const = 0;
+    [[nodiscard]] virtual bool is_available() const = 0;
     virtual void write(const std::string& path, const float* data, const ArrayShape& shape) = 0;
     virtual void read(const std::string& path, float* data, const ArrayShape& shape) = 0;
-    virtual std::string extension() const = 0;
+    [[nodiscard]] virtual std::string extension() const = 0;
 };
 
 /// Calculate throughput
