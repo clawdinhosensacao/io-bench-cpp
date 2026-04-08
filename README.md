@@ -2,26 +2,27 @@
 
 A comprehensive I/O format benchmark for scientific computing arrays, implemented entirely in C++20. Focused on **geophysics and seismic processing** workloads.
 
-## Supported Formats (15 formats, 14 working)
+## Supported Formats (16 formats, 15 working)
 
-| Format | Status | Description |
-|--------|--------|-------------|
-| `binary_f32` | ✅ Always | Raw float32, no header |
-| `binary_header` | ✅ Always | Float32 with shape header (magic + nx + nz) |
-| `mmap` | ✅ Always | Memory-mapped binary (POSIX) |
-| `npy` | ✅ Always | NumPy native format via cnpy |
-| `json` | ✅ Always | JSON 2D array (nlohmann/json) |
-| `hdf5` | ✅ Optional | HDF5 via HighFive |
-| `netcdf` | ✅ Optional | NetCDF4 C++ |
-| `tiledb` | ✅ Optional | TileDB dense array |
-| `zarr` | ✅ Optional | Zarr v2 via Python subprocess |
-| `segy` | ✅ Optional | SEG-Y seismic trace format via segyio |
-| `duckdb` | ✅ Optional | DuckDB columnar SQL engine |
-| `parquet` | ✅ Optional | Apache Parquet via Arrow C++ |
-| `tensorstore` | ✅ Optional | TensorStore via Python bridge |
-| `mdio` | ✅ Optional | MDIO (Multidimensional IO) via Python bridge |
-| `miniseed` | ✅ Optional | MiniSEED seismological time series via obspy |
-| `adios2` | ❌ N/A | ADIOS2 BP format (no library available) |
+| Format | Status | Type | Description |
+|--------|--------|------|-------------|
+| `binary_f32` | ✅ Always | Native C++ | Raw float32, no header |
+| `binary_header` | ✅ Always | Native C++ | Float32 with shape header (magic + nx + nz) |
+| `mmap` | ✅ Always | Native C++ | Memory-mapped binary (POSIX) |
+| `rsf` | ✅ Always | Native C++ | Madagascar Regularly Sampled Format |
+| `npy` | ✅ Always | Native C++ | NumPy native format via cnpy |
+| `json` | ✅ Always | Native C++ | JSON 2D array (nlohmann/json) |
+| `hdf5` | ✅ Optional | Native C++ | HDF5 via HighFive |
+| `netcdf` | ✅ Optional | Native C++ | NetCDF4 C++ |
+| `segy` | ✅ Optional | Python bridge | SEG-Y seismic trace format via segyio |
+| `parquet` | ✅ Optional | Native C++ | Apache Parquet via Arrow C++ |
+| `tiledb` | ✅ Optional | Native C++ | TileDB dense array |
+| `zarr` | ✅ Optional | Python bridge | Zarr v2 via Python subprocess |
+| `duckdb` | ✅ Optional | Native C++ | DuckDB columnar SQL engine |
+| `mdio` | ✅ Optional | Python bridge | MDIO (Multidimensional IO) for seismic |
+| `miniseed` | ✅ Optional | Python bridge | MiniSEED seismological time series via obspy |
+| `tensorstore` | ✅ Optional | Python bridge | TensorStore via Python bridge |
+| `adios2` | ❌ N/A | — | ADIOS2 BP format (no library available) |
 
 ## Geophysics Presets
 

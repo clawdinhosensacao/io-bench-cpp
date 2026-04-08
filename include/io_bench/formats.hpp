@@ -164,4 +164,14 @@ public:
     std::string extension() const override { return ".mseed"; }
 };
 
+/// RSF format (Madagascar Regularly Sampled Format — native C++)
+class RsfFormat : public FormatAdapter {
+public:
+    std::string name() const override { return "rsf"; }
+    [[nodiscard]] bool is_available() const override { return true; }
+    void write(const std::string& path, const float* data, const ArrayShape& shape) override;
+    void read(const std::string& path, float* data, const ArrayShape& shape) override;
+    [[nodiscard]] std::string extension() const override { return ".rsf"; }
+};
+
 } // namespace io_bench
