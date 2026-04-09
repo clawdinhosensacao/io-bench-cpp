@@ -5,6 +5,9 @@
 #include <sstream>
 #include <iomanip>
 #include <utility>
+#include <thread>
+#include <atomic>
+#include <barrier>
 
 namespace io_bench {
 
@@ -164,6 +167,142 @@ std::vector<std::unique_ptr<FormatAdapter>> create_all_adapters() {
     adapters.push_back(std::make_unique<SegDFormat>());
     
     return adapters;
+}
+
+ParallelReadResult BenchmarkRunner::run_parallel_read(FormatAdapter& adapter) {
+    ParallelReadResult result;
+    result.name = adapter.name();
+    result.available = adapter.is_available();
+    result.num_threads = config_.parallel_threads;
+
+    if (!result.available || config_.parallel_threads <= 1) {
+        return result;
+    }
+
+    if (!adapter.is_thread_safe()) {
+        result.error = "Not thread-safe (Python bridge)";
+        return result;
+    }
+
+    ArrayShape shape{.nx=config_.nx, .nz=config_.nz, .ny=config_.ny};
+    auto data = generate_data(shape);
+    auto file_path = temp_dir_ / (adapter.name() + adapter.extension());
+    std::string path_str = file_path.string();
+
+    try {
+        // Write data once (sequential)
+        adapter.write(path_str, data.data(), shape);
+
+        // Get file size
+        double file_size_mb = 0.0;
+        if (std::filesystem::is_directory(file_path)) {
+            std::uintmax_t dir_size = 0;
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(file_path)) {
+                if (std::filesystem::is_regular_file(entry)) {
+                    dir_size += std::filesystem::file_size(entry);
+                }
+            }
+            file_size_mb = static_cast<double>(dir_size) / (1024.0 * 1024.0);
+        } else {
+            file_size_mb = static_cast<double>(std::filesystem::file_size(file_path)) / (1024.0 * 1024.0);
+        }
+
+        // Warmup read
+        {
+            std::vector<float> warmup_buf(shape.total());
+            adapter.read(path_str, warmup_buf.data(), shape);
+        }
+
+        // Parallel reads: each thread reads the entire file independently
+        const std::size_t num_threads = config_.parallel_threads;
+        std::vector<double> thread_times(num_threads, 0.0);
+        std::vector<std::vector<float>> buffers(num_threads);
+        for (std::size_t t = 0; t < num_threads; ++t) {
+            buffers[t].resize(shape.total());
+        }
+
+        // Barrier for synchronized start
+        std::atomic<bool> go{false};
+
+        std::vector<std::thread> threads;
+        std::vector<std::string> thread_errors(num_threads);
+        for (std::size_t t = 0; t < num_threads; ++t) {
+            threads.emplace_back([&, t]() {
+                try {
+                    // Spin-wait for go signal
+                    while (!go.load(std::memory_order_acquire)) {
+                        // busy wait
+                    }
+                    Timer timer;
+                    timer.start();
+                    adapter.read(path_str, buffers[t].data(), shape);
+                    timer.stop();
+                    thread_times[t] = timer.elapsed_ms();
+                } catch (const std::exception& e) {
+                    thread_errors[t] = e.what();
+                    thread_times[t] = -1.0;
+                } catch (...) {
+                    thread_errors[t] = "Unknown exception";
+                    thread_times[t] = -1.0;
+                }
+            });
+        }
+
+        // Start all threads simultaneously
+        Timer wall_timer;
+        wall_timer.start();
+        go.store(true, std::memory_order_release);
+
+        for (auto& th : threads) {
+            th.join();
+        }
+        wall_timer.stop();
+
+        // Check for thread errors
+        for (std::size_t t = 0; t < num_threads; ++t) {
+            if (!thread_errors[t].empty()) {
+                result.error = "Thread " + std::to_string(t) + ": " + thread_errors[t];
+                std::filesystem::remove_all(file_path);
+                return result;
+            }
+        }
+
+        result.total_read_ms = wall_timer.elapsed_ms();
+        result.per_thread_ms = 0.0;
+        for (auto t : thread_times) {
+            result.per_thread_ms += t;
+        }
+        result.per_thread_ms /= static_cast<double>(num_threads);
+
+        // Aggregate throughput: all threads reading simultaneously
+        result.data_size_mb = file_size_mb * static_cast<double>(num_threads);
+        result.aggregate_mbps = throughput_mbps(result.data_size_mb, result.total_read_ms / 1000.0);
+
+        // Verify first thread's data
+        for (std::size_t i = 0; i < shape.total(); ++i) {
+            if (std::abs(data[i] - buffers[0][i]) > 0.001f) {
+                result.error = "Data integrity check failed in parallel read";
+                break;
+            }
+        }
+
+        // Cleanup
+        std::filesystem::remove_all(file_path);
+
+    } catch (const std::exception& e) {
+        result.error = e.what();
+    }
+
+    return result;
+}
+
+std::vector<ParallelReadResult> BenchmarkRunner::run_parallel_read_all() {
+    std::vector<ParallelReadResult> results;
+    results.reserve(adapters_.size());
+    for (auto& adapter : adapters_) {
+        results.push_back(run_parallel_read(*adapter));
+    }
+    return results;
 }
 
 } // namespace io_bench

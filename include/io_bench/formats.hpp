@@ -52,6 +52,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".h5"; }
+    [[nodiscard]] bool is_thread_safe() const override { return false; }
 };
 
 /// NetCDF4 format (optional)
@@ -62,6 +63,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".nc"; }
+    [[nodiscard]] bool is_thread_safe() const override { return false; }
 };
 
 /// TileDB format (optional)
@@ -72,6 +74,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".tiledb"; }
+    [[nodiscard]] bool is_thread_safe() const override { return false; }
 };
 
 /// ADIOS2 BP format (optional)
@@ -82,6 +85,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".bp"; }
+    [[nodiscard]] bool is_thread_safe() const override { return false; }
 };
 
 /// Memory-mapped binary (for comparison)
@@ -102,6 +106,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".zarr"; }
+    [[nodiscard]] bool is_thread_safe() const override { return false; }
 };
 
 /// Parquet format (placeholder)
@@ -112,6 +117,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".parquet"; }
+    [[nodiscard]] bool is_thread_safe() const override { return false; }
 };
 
 /// SEG-Y format (placeholder)
@@ -122,6 +128,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".segy"; }
+    [[nodiscard]] bool is_thread_safe() const override { return false; }
 };
 
 /// TensorStore format (placeholder)
@@ -132,6 +139,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".tstore"; }
+    [[nodiscard]] bool is_thread_safe() const override { return false; }
 };
 
 /// MDIO format (placeholder)
@@ -142,6 +150,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".mdio"; }
+    [[nodiscard]] bool is_thread_safe() const override { return false; }
 };
 
 /// DuckDB format (SQL database)
@@ -152,6 +161,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".duckdb"; }
+    [[nodiscard]] bool is_thread_safe() const override { return false; }
 };
 
 /// MiniSEED format (seismological time series via libmseed C API)
@@ -162,6 +172,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".mseed"; }
+    [[nodiscard]] bool is_thread_safe() const override { return false; }
 };
 
 /// RSF format (Madagascar Regularly Sampled Format — native C++)
@@ -182,6 +193,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".h5"; }
+    [[nodiscard]] bool is_thread_safe() const override { return false; }
 };
 
 /// SEGD format (SEG-D field recording format — native C++)

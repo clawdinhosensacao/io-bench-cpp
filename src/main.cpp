@@ -43,6 +43,7 @@ void print_usage(const char* prog) {
               << "  --nz <n>           Grid size in Z (default: 80)\n"
               << "  --ny <n>           Grid size in Y for 3D (default: 1)\n"
               << "  --iterations <n>   Number of iterations (default: 1)\n"
+              << "  --threads <n>      Number of parallel read threads (default: 1, sequential)\n"
               << "  --preset <name>    Use geophysics preset (overrides nx/nz/ny/iterations)\n"
               << "  --list-presets     List available geophysics presets\n"
               << "  --output <path>    Output markdown report path\n"
@@ -99,6 +100,8 @@ int main(int argc, char* argv[]) {
             config.ny = std::stoul(get_value());
         } else if (arg == "--iterations") {
             config.iterations = std::stoul(get_value());
+        } else if (arg == "--threads") {
+            config.parallel_threads = std::stoul(get_value());
         } else if (arg == "--preset") {
             preset_name = get_value();
         } else if (arg == "--list-presets") {
@@ -161,6 +164,45 @@ int main(int argc, char* argv[]) {
     
     // Print results
     io_bench::print_results(results);
+    
+    // Parallel read benchmark if threads > 1
+    if (config.parallel_threads > 1) {
+        std::cout << "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        std::cout << "Parallel Read Benchmark (" << config.parallel_threads << " threads)\n";
+        std::cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+        
+        auto par_results = runner.run_parallel_read_all();
+        
+        // Print header
+        std::cout << std::left << std::setw(18) << "Format"
+                  << std::right << std::setw(8) << "Avail"
+                  << std::setw(10) << "Total ms"
+                  << std::setw(12) << "Per-Th ms"
+                  << std::setw(12) << "Data MB"
+                  << std::setw(14) << "Agg MB/s"
+                  << "\n";
+        std::cout << std::string(74, '-') << "\n";
+        
+        for (const auto& r : par_results) {
+            if (!r.available) {
+                std::cout << std::left << std::setw(18) << r.name
+                          << std::right << "  N/A\n";
+                continue;
+            }
+            if (!r.error.empty()) {
+                std::cout << std::left << std::setw(18) << r.name
+                          << "  ERROR: " << r.error << "\n";
+                continue;
+            }
+            std::cout << std::left << std::setw(18) << r.name
+                      << std::right << std::setw(8) << "OK"
+                      << std::setw(10) << std::fixed << std::setprecision(1) << r.total_read_ms
+                      << std::setw(12) << std::setprecision(1) << r.per_thread_ms
+                      << std::setw(12) << std::setprecision(1) << r.data_size_mb
+                      << std::setw(14) << std::setprecision(1) << r.aggregate_mbps
+                      << "\n";
+        }
+    }
     
     // Write report if requested
     if (!output_path.empty()) {

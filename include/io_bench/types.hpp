@@ -27,6 +27,7 @@ struct BenchConfig {
     std::size_t nz = 80;           ///< Grid size Z
     std::size_t ny = 1;            ///< Grid size Y (for 3D, default 1)
     std::size_t iterations = 1;    ///< Number of iterations
+    std::size_t parallel_threads = 1; ///< Number of concurrent read threads (1 = sequential)
     std::string output_dir = ".";  ///< Output directory for test files
     bool warmup = true;            ///< Run warmup iteration before timing
 };
@@ -73,6 +74,8 @@ public:
     virtual void write(const std::string& path, const float* data, const ArrayShape& shape) = 0;
     virtual void read(const std::string& path, float* data, const ArrayShape& shape) = 0;
     [[nodiscard]] virtual std::string extension() const = 0;
+    /// Whether this format supports concurrent reads from multiple threads
+    [[nodiscard]] virtual bool is_thread_safe() const { return true; }
 };
 
 /// Calculate throughput
