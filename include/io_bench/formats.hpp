@@ -135,6 +135,9 @@ public:
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".segy"; }
     [[nodiscard]] bool is_thread_safe() const override { return false; }
+    [[nodiscard]] bool supports_trace_read() const override { return true; }
+    void read_trace(const std::string& path, float* trace_buf,
+                    const ArrayShape& shape, std::size_t trace_idx) override;
 };
 
 /// TensorStore format (placeholder)
@@ -213,6 +216,9 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".sgd"; }
+    [[nodiscard]] bool supports_trace_read() const override { return true; }
+    void read_trace(const std::string& path, float* trace_buf,
+                    const ArrayShape& shape, std::size_t trace_idx) override;
 };
 
 /// Direct I/O format (O_DIRECT — bypass page cache)

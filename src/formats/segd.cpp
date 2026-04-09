@@ -127,4 +127,32 @@ void SegDFormat::read(const std::string& path, float* data, const ArrayShape& sh
     }
 }
 
+void SegDFormat::read_trace(const std::string& path, float* trace_buf,
+                            const ArrayShape& shape, std::size_t trace_idx) {
+    std::ifstream f(path, std::ios::binary);
+    if (!f) { throw std::runtime_error("SEGD: cannot open input file: " + path); }
+
+    // Read general header to get num_samples
+    SegDGeneralHeader gh;
+    f.read(reinterpret_cast<char*>(&gh), sizeof(gh));
+    const uint16_t num_samples = read_be_u16(reinterpret_cast<const uint8_t*>(&gh.num_samples));
+
+    // Seek directly to the requested trace
+    const std::size_t trace_offset = sizeof(gh) + (trace_idx * (sizeof(SegDTraceHeader) + static_cast<std::size_t>(num_samples) * sizeof(float)));
+    f.seekg(static_cast<std::streamsize>(trace_offset), std::ios::beg);
+
+    // Skip trace header
+    SegDTraceHeader th;
+    f.read(reinterpret_cast<char*>(&th), sizeof(th));
+
+    // Read trace samples (big-endian float32)
+    for (uint16_t isamp = 0; isamp < num_samples && isamp < shape.nx; ++isamp) {
+        uint32_t be_val;
+        f.read(reinterpret_cast<char*>(&be_val), sizeof(be_val));
+        if (!f) { throw std::runtime_error("SEGD: failed to read trace sample"); }
+        be_val = __builtin_bswap32(be_val);
+        std::memcpy(&trace_buf[isamp], &be_val, sizeof(float));
+    }
+}
+
 } // namespace io_bench

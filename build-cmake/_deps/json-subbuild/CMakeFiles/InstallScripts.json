@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/data/.openclaw/workspace/io-bench-cpp/build-cmake/_deps/json-subbuild/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

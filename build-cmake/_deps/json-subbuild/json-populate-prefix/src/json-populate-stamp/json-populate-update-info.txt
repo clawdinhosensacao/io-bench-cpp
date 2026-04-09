@@ -1,0 +1,7 @@
+# This is a generated file and its contents are an internal implementation detail.
+# The patch step will be re-executed if anything in this file changes.
+# No other meaning or use of this file is supported.
+
+command (connected)=/data/.local/lib/python3.13/site-packages/cmake/data/bin/cmake;-Dcan_fetch=YES;-DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE;-P;/data/.openclaw/workspace/io-bench-cpp/build-cmake/_deps/json-subbuild/json-populate-prefix/tmp/json-populate-gitupdate.cmake
+command (disconnected)=/data/.local/lib/python3.13/site-packages/cmake/data/bin/cmake;-Dcan_fetch=NO;-DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE;-P;/data/.openclaw/workspace/io-bench-cpp/build-cmake/_deps/json-subbuild/json-populate-prefix/tmp/json-populate-gitupdate.cmake
+work_dir=/data/.openclaw/workspace/io-bench-cpp/build-cmake/_deps/json-src

@@ -181,4 +181,41 @@ void SegyFormat::read(const std::string& path, float* data, const ArrayShape& sh
     }
 }
 
+void SegyFormat::read_trace(const std::string& path, float* trace_buf,
+                            const ArrayShape& shape, std::size_t trace_idx) {
+    std::ifstream in(path, std::ios::binary);
+    if (!in) {
+        throw std::runtime_error("SEG-Y: Cannot open file for reading: " + path);
+    }
+
+    // Calculate byte offset to the requested trace
+    // File layout: text_header + binary_header + [trace_header + trace_data] * num_traces
+    const std::size_t trace_offset = TEXT_HEADER_SIZE + BINARY_HEADER_SIZE +
+                                     (trace_idx * (TRACE_HEADER_SIZE + shape.nz * sizeof(float)));
+
+    in.seekg(static_cast<std::streamsize>(trace_offset), std::ios::beg);
+
+    // Skip trace header
+    in.seekg(static_cast<std::streamsize>(TRACE_HEADER_SIZE), std::ios::cur);
+
+    // Read trace samples (big-endian float32)
+    for (std::size_t iz = 0; iz < shape.nz; ++iz) {
+        char bytes[4];
+        in.read(bytes, 4);
+        if (!in) {
+            throw std::runtime_error("SEG-Y: failed to read trace sample");
+        }
+
+        // Convert from big-endian
+        auto bits = (static_cast<uint32_t>(static_cast<unsigned char>(bytes[0])) << 24) |
+                    (static_cast<uint32_t>(static_cast<unsigned char>(bytes[1])) << 16) |
+                    (static_cast<uint32_t>(static_cast<unsigned char>(bytes[2])) << 8) |
+                    static_cast<uint32_t>(static_cast<unsigned char>(bytes[3]));
+
+        float val;
+        std::memcpy(&val, &bits, sizeof(float));
+        trace_buf[iz] = val;
+    }
+}
+
 } // namespace io_bench

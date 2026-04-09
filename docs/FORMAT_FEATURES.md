@@ -81,20 +81,22 @@ focusing on capabilities relevant to **geophysics and seismic processing** workf
 2. **TileDB**: Multi-threaded array I/O with cloud support
 3. **TensorStore C++ API**: Parallel chunk reads, designed for TB-scale data
 
-## Future Features to Implement in io-bench-cpp
+## Implemented Benchmark Features in io-bench-cpp
 
-### High Priority (Geophysics Impact)
-1. **Chunked Read Benchmark**: Read single inline from 3D volume (measures chunking efficiency)
-2. **Parallel I/O Benchmark**: Multi-threaded reads of same volume (measures concurrency scaling)
-3. **Big Volume Benchmark**: 401×401×201 (~300MB) with throughput tracking
-4. **Compression Ratio Comparison**: Same data, measure size reduction per format
+### ✅ High Priority (Complete)
+1. **Chunked/Slice Read Benchmark** (`--slice-read`): Read single inline from 3D volume, 196x speedup vs full read for native-slice formats
+2. **Parallel I/O Benchmark** (`--threads N`): Multi-threaded reads of same volume, RSF ~1680 MB/s aggregate with 4 threads
+3. **Big Volume Benchmark** (`--big-volume` / `--preset 3d-big-volume`): 401×401×501 (~307 MB) at realistic seismic scale
+4. **Compression Ratio Comparison**: `compression_ratio` field in BenchResult, displayed in console/markdown reports
 
-### Medium Priority (Feature Coverage)
-5. **Streaming Write Benchmark**: Append traces one at a time (acquisition simulation)
-6. **Direct I/O (O_DIRECT)**: Bypass page cache to measure raw disk throughput
-7. **Cloud I/O Benchmark**: S3/GCS read performance (mock or real)
+### ✅ Medium Priority (Complete)
+5. **Streaming Write Benchmark** (`--stream-write`): Append traces one at a time, stream vs bulk slowdown comparison
+6. **Direct I/O (O_DIRECT)** (`direct_io` format): Bypass page cache, ~2229 MB/s raw disk throughput
+7. **Trace Read Benchmark** (`--trace-read`): Sequential + random trace access, measures per-trace read performance
+8. **Checkpoint/Restart Benchmark** (`--checkpoint`): Write-then-read-back with integrity verification
 
-### Low Priority (Nice-to-Have)
-8. **Compression Level Sweep**: Same format, different compression levels
-9. **Memory Usage Tracking**: Peak RSS during read/write operations
-10. **Random Access Pattern**: Non-sequential reads (trace picking, horizon extraction)
+### 🔲 Future (Not Yet Implemented)
+9. **Cloud I/O Benchmark**: S3/GCS read performance (mock or real)
+10. **Compression Level Sweep**: Same format, different compression levels
+11. **Memory Usage Tracking**: Peak RSS during read/write operations
+12. **TensorStore C++ Native API**: Replace Python bridge with C++ FetchContent integration
