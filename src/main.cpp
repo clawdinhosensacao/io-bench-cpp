@@ -53,6 +53,7 @@ void print_usage(const char* prog) {
               << "  --slice-read       Run inline slice read benchmark (requires 3D volume, ny>1)\n"
               << "  --trace-read       Run trace read benchmark (sequential + random trace access)\n"
               << "  --stream-write     Run streaming write benchmark (append-only trace writes)\n"
+              << "  --checkpoint       Run checkpoint/restart benchmark (write-then-read with integrity check)\n"
               << "  --big-volume       Shortcut for --preset 3d-big-volume (401×401×501, ~307 MB)\n"
               << "  --preset <name>    Use geophysics preset (overrides nx/nz/ny/iterations)\n"
               << "  --list-presets     List available geophysics presets\n"
@@ -87,6 +88,7 @@ int main(int argc, char* argv[]) {
     bool slice_read = false;
     bool trace_read = false;
     bool stream_write = false;
+    bool checkpoint = false;
     
     // Parse arguments
     for (int i = 1; i < argc; ++i) {
@@ -121,6 +123,8 @@ int main(int argc, char* argv[]) {
             trace_read = true;
         } else if (arg == "--stream-write") {
             stream_write = true;
+        } else if (arg == "--checkpoint") {
+            checkpoint = true;
         } else if (arg == "--big-volume") {
             preset_name = "3d-big-volume";
         } else if (arg == "--preset") {
@@ -357,6 +361,52 @@ int main(int argc, char* argv[]) {
         }
 
         std::cout << "\n  Slowdown = stream_write_ms / bulk_write_ms (1.0x = no penalty)\n";
+    }
+
+    // Checkpoint/restart benchmark
+    if (checkpoint) {
+        std::cout << "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        std::cout << "Checkpoint/Restart Benchmark (" << config.nx << "×" << config.nz;
+        if (config.ny > 1) { std::cout << "×" << config.ny; }
+        std::cout << ", " << std::fixed << std::setprecision(1)
+                  << io_bench::ArrayShape{config.nx, config.nz, config.ny}.mb() << " MB)\n";
+        std::cout << "Write → Read-back with integrity verification\n";
+        std::cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+
+        auto ckpt_results = runner.run_checkpoint_all();
+
+        std::cout << std::left << std::setw(18) << "Format"
+                  << std::right << std::setw(8) << "Write ms"
+                  << std::setw(8) << "Read ms"
+                  << std::setw(10) << "Total ms"
+                  << std::setw(10) << "W MB/s"
+                  << std::setw(10) << "R MB/s"
+                  << std::setw(8) << "OK?"
+                  << "\n";
+        std::cout << std::string(72, '-') << "\n";
+
+        for (const auto& r : ckpt_results) {
+            if (!r.available) {
+                std::cout << std::left << std::setw(18) << r.name
+                          << std::right << "  N/A\n";
+                continue;
+            }
+            if (!r.error.empty()) {
+                std::cout << std::left << std::setw(18) << r.name
+                          << "  ERROR: " << r.error << "\n";
+                continue;
+            }
+            std::cout << std::left << std::setw(18) << r.name
+                      << std::right << std::setw(8) << std::fixed << std::setprecision(1) << r.write_ms
+                      << std::setw(8) << std::setprecision(1) << r.read_ms
+                      << std::setw(10) << std::setprecision(1) << r.round_trip_ms
+                      << std::setw(10) << std::setprecision(1) << r.write_mbps
+                      << std::setw(10) << std::setprecision(1) << r.read_mbps
+                      << std::setw(8) << (r.integrity_ok ? "✓" : "✗")
+                      << "\n";
+        }
+
+        std::cout << "\n  ✓ = data integrity verified (read-back matches written data)\n";
     }
 
     // Write report if requested

@@ -591,4 +591,83 @@ std::vector<StreamWriteResult> BenchmarkRunner::run_stream_write_all() {
     return results;
 }
 
+CheckpointResult BenchmarkRunner::run_checkpoint(FormatAdapter& adapter) {
+    CheckpointResult result;
+    result.name = adapter.name();
+
+    if (!adapter.is_available()) {
+        result.available = false;
+        return result;
+    }
+    result.available = true;
+
+    const ArrayShape shape{config_.nx, config_.nz, config_.ny};
+
+    try {
+        // Generate data
+        auto data = generate_data(shape);
+        auto file_path = temp_dir_ / (adapter.name() + adapter.extension());
+
+        // --- Checkpoint: write ---
+        Timer write_timer;
+        write_timer.start();
+        adapter.write(file_path.string(), data.data(), shape);
+        write_timer.stop();
+        result.write_ms = write_timer.elapsed_ms();
+        result.write_mbps = throughput_mbps(shape.mb(), write_timer.elapsed_s());
+
+        // File size
+        if (std::filesystem::is_directory(file_path)) {
+            std::uintmax_t dir_size = 0;
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(file_path)) {
+                if (entry.is_regular_file()) { dir_size += entry.file_size(); }
+            }
+            result.file_size_mb = static_cast<double>(dir_size) / (1024.0 * 1024.0);
+        } else {
+            result.file_size_mb = static_cast<double>(std::filesystem::file_size(file_path)) / (1024.0 * 1024.0);
+        }
+
+        // --- Restart: read back ---
+        std::vector<float> read_data(shape.total());
+        Timer read_timer;
+        read_timer.start();
+        adapter.read(file_path.string(), read_data.data(), shape);
+        read_timer.stop();
+        result.read_ms = read_timer.elapsed_ms();
+        result.read_mbps = throughput_mbps(shape.mb(), read_timer.elapsed_s());
+
+        // Round-trip time
+        result.round_trip_ms = result.write_ms + result.read_ms;
+
+        // --- Integrity check ---
+        double max_err = 0.0;
+        bool ok = true;
+        for (std::size_t i = 0; i < shape.total(); ++i) {
+            double err = std::abs(static_cast<double>(data[i]) - static_cast<double>(read_data[i]));
+            if (err > max_err) { max_err = err; }
+            // Allow small floating-point differences from format conversions
+            if (err > 1e-3) { ok = false; }
+        }
+        result.integrity_ok = ok;
+        result.max_abs_error = max_err;
+
+        // Cleanup
+        std::filesystem::remove_all(file_path);
+
+    } catch (const std::exception& e) {
+        result.error = e.what();
+    }
+
+    return result;
+}
+
+std::vector<CheckpointResult> BenchmarkRunner::run_checkpoint_all() {
+    std::vector<CheckpointResult> results;
+    results.reserve(adapters_.size());
+    for (auto& adapter : adapters_) {
+        results.push_back(run_checkpoint(*adapter));
+    }
+    return results;
+}
+
 } // namespace io_bench

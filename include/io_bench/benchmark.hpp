@@ -59,6 +59,12 @@ public:
 
     /// Run streaming write benchmark for a single format
     [[nodiscard]] StreamWriteResult run_stream_write(FormatAdapter& adapter);
+
+    /// Run checkpoint/restart benchmark for all formats
+    [[nodiscard]] std::vector<CheckpointResult> run_checkpoint_all();
+
+    /// Run checkpoint/restart benchmark for a single format
+    [[nodiscard]] CheckpointResult run_checkpoint(FormatAdapter& adapter);
     
     /// Generate test data
     [[nodiscard]] static std::vector<float> generate_data(const ArrayShape& shape, unsigned int seed = 0);

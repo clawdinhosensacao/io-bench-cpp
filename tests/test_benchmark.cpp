@@ -150,3 +150,18 @@ TEST_F(BenchmarkTest, StreamWriteResultDefaults) {
     EXPECT_DOUBLE_EQ(result.slowdown, 0.0);
     EXPECT_TRUE(result.error.empty());
 }
+
+TEST_F(BenchmarkTest, CheckpointResultDefaults) {
+    io_bench::CheckpointResult result;
+    EXPECT_TRUE(result.name.empty());
+    EXPECT_FALSE(result.available);
+    EXPECT_DOUBLE_EQ(result.file_size_mb, 0.0);
+    EXPECT_DOUBLE_EQ(result.write_ms, 0.0);
+    EXPECT_DOUBLE_EQ(result.read_ms, 0.0);
+    EXPECT_DOUBLE_EQ(result.round_trip_ms, 0.0);
+    EXPECT_DOUBLE_EQ(result.write_mbps, 0.0);
+    EXPECT_DOUBLE_EQ(result.read_mbps, 0.0);
+    EXPECT_FALSE(result.integrity_ok);
+    EXPECT_DOUBLE_EQ(result.max_abs_error, 0.0);
+    EXPECT_TRUE(result.error.empty());
+}

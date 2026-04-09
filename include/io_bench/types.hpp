@@ -113,6 +113,21 @@ struct StreamWriteResult {
     std::string error;
 };
 
+/// Result of a checkpoint/restart benchmark (write-then-read-back round trip)
+struct CheckpointResult {
+    std::string name;
+    bool available = false;
+    double file_size_mb = 0.0;          ///< File size (MB)
+    double write_ms = 0.0;              ///< Checkpoint write time (ms)
+    double read_ms = 0.0;              ///< Restart read time (ms)
+    double round_trip_ms = 0.0;        ///< Total write+read time (ms)
+    double write_mbps = 0.0;           ///< Write throughput (MB/s)
+    double read_mbps = 0.0;           ///< Read throughput (MB/s)
+    bool integrity_ok = false;          ///< Whether read-back data matches written data
+    double max_abs_error = 0.0;        ///< Maximum absolute error between written and read data
+    std::string error;
+};
+
 /// Format adapter interface
 class FormatAdapter {
 public:
