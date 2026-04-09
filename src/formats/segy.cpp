@@ -78,14 +78,14 @@ void SegyFormat::write(const std::string& path, const float* data, const ArraySh
         trace_header[83] = static_cast<char>(cdp_x & 0xFF);
         
         // CDP Y coordinate (bytes 85-88)
-        int32_t cdp_y = static_cast<int32_t>((trace_idx / shape.nx) * 100);
+        auto cdp_y = static_cast<int32_t>((trace_idx / shape.nx) * 100);
         trace_header[84] = static_cast<char>((cdp_y >> 24) & 0xFF);
         trace_header[85] = static_cast<char>((cdp_y >> 16) & 0xFF);
         trace_header[86] = static_cast<char>((cdp_y >> 8) & 0xFF);
         trace_header[87] = static_cast<char>(cdp_y & 0xFF);
         
         // Number of samples (bytes 115-116)
-        uint16_t ns = static_cast<uint16_t>(samples_per_trace);
+        auto ns = static_cast<uint16_t>(samples_per_trace);
         trace_header[114] = static_cast<char>((ns >> 8) & 0xFF);
         trace_header[115] = static_cast<char>(ns & 0xFF);
         
@@ -97,10 +97,10 @@ void SegyFormat::write(const std::string& path, const float* data, const ArraySh
             if (shape.ny > 1) {
                 std::size_t ix = trace_idx % shape.nx;
                 std::size_t iy = trace_idx / shape.nx;
-                idx = iz * shape.ny * shape.nx + iy * shape.nx + ix;
+                idx = (iz * shape.ny * shape.nx) + (iy * shape.nx) + ix;
             } else {
                 std::size_t ix = trace_idx;
-                idx = iz * shape.nx + ix;
+                idx = (iz * shape.nx) + ix;
             }
             
             float val = data[idx];
@@ -131,7 +131,7 @@ void SegyFormat::read(const std::string& path, float* data, const ArrayShape& sh
     in.read(binary_header.data(), BINARY_HEADER_SIZE);
     
     // Get number of samples per trace
-    uint16_t nsamples = (static_cast<uint16_t>(static_cast<unsigned char>(binary_header[22])) << 8) |
+    auto nsamples = (static_cast<uint16_t>(static_cast<unsigned char>(binary_header[22])) << 8) |
                         static_cast<uint16_t>(static_cast<unsigned char>(binary_header[23]));
     
     if (nsamples != shape.nz) {
@@ -139,7 +139,7 @@ void SegyFormat::read(const std::string& path, float* data, const ArrayShape& sh
     }
     
     // Get data format
-    uint16_t format = (static_cast<uint16_t>(static_cast<unsigned char>(binary_header[24])) << 8) |
+    auto format = (static_cast<uint16_t>(static_cast<unsigned char>(binary_header[24])) << 8) |
                       static_cast<uint16_t>(static_cast<unsigned char>(binary_header[25]));
     
     if (format != 5) {
@@ -171,10 +171,10 @@ void SegyFormat::read(const std::string& path, float* data, const ArrayShape& sh
             if (shape.ny > 1) {
                 std::size_t ix = trace_idx % shape.nx;
                 std::size_t iy = trace_idx / shape.nx;
-                idx = iz * shape.ny * shape.nx + iy * shape.nx + ix;
+                idx = (iz * shape.ny * shape.nx) + (iy * shape.nx) + ix;
             } else {
                 std::size_t ix = trace_idx;
-                idx = iz * shape.nx + ix;
+                idx = (iz * shape.nx) + ix;
             }
             data[idx] = val;
         }

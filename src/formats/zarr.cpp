@@ -46,9 +46,9 @@ void ZarrFormat::write(const std::string& path, const float* data, const ArraySh
     meta_out.close();
     
     // Determine chunk sizes
-    std::size_t chunk_nz = std::min(shape.nz, (std::size_t)64);
-    std::size_t chunk_ny = shape.ny > 1 ? std::min(shape.ny, (std::size_t)64) : 1;
-    std::size_t chunk_nx = std::min(shape.nx, (std::size_t)64);
+    std::size_t chunk_nz = std::min(shape.nz, static_cast<std::size_t>(64));
+    std::size_t chunk_ny = shape.ny > 1 ? std::min(shape.ny, static_cast<std::size_t>(64)) : 1;
+    std::size_t chunk_nx = std::min(shape.nx, static_cast<std::size_t>(64));
     
     // Write chunks
     std::size_t n_chunks_z = (shape.nz + chunk_nz - 1) / chunk_nz;
