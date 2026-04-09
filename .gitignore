@@ -9,3 +9,4 @@ CMakeUserPresets.json
 compile_commands.json
 deps/
 third_party/
+build-cmake/
