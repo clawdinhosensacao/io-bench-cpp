@@ -53,6 +53,12 @@ public:
 
     /// Run trace read benchmark for a single format
     [[nodiscard]] TraceReadResult run_trace_read(FormatAdapter& adapter);
+
+    /// Run streaming write benchmark for all formats
+    [[nodiscard]] std::vector<StreamWriteResult> run_stream_write_all();
+
+    /// Run streaming write benchmark for a single format
+    [[nodiscard]] StreamWriteResult run_stream_write(FormatAdapter& adapter);
     
     /// Generate test data
     [[nodiscard]] static std::vector<float> generate_data(const ArrayShape& shape, unsigned int seed = 0);

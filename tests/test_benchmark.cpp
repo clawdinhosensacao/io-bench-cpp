@@ -135,3 +135,18 @@ TEST_F(BenchmarkTest, FormatAdapterDefaultTraceReadFallback) {
 
     std::filesystem::remove(path);
 }
+
+TEST_F(BenchmarkTest, StreamWriteResultDefaults) {
+    io_bench::StreamWriteResult result;
+    EXPECT_TRUE(result.name.empty());
+    EXPECT_FALSE(result.available);
+    EXPECT_EQ(result.num_traces, 0u);
+    EXPECT_EQ(result.samples_per_trace, 0u);
+    EXPECT_DOUBLE_EQ(result.trace_size_kb, 0.0);
+    EXPECT_DOUBLE_EQ(result.stream_write_ms, 0.0);
+    EXPECT_DOUBLE_EQ(result.stream_write_mbps, 0.0);
+    EXPECT_DOUBLE_EQ(result.bulk_write_ms, 0.0);
+    EXPECT_DOUBLE_EQ(result.bulk_write_mbps, 0.0);
+    EXPECT_DOUBLE_EQ(result.slowdown, 0.0);
+    EXPECT_TRUE(result.error.empty());
+}

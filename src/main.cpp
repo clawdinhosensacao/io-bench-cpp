@@ -52,6 +52,7 @@ void print_usage(const char* prog) {
               << "  --threads <n>      Number of parallel read threads (default: 1, sequential)\n"
               << "  --slice-read       Run inline slice read benchmark (requires 3D volume, ny>1)\n"
               << "  --trace-read       Run trace read benchmark (sequential + random trace access)\n"
+              << "  --stream-write     Run streaming write benchmark (append-only trace writes)\n"
               << "  --big-volume       Shortcut for --preset 3d-big-volume (401×401×501, ~307 MB)\n"
               << "  --preset <name>    Use geophysics preset (overrides nx/nz/ny/iterations)\n"
               << "  --list-presets     List available geophysics presets\n"
@@ -85,6 +86,7 @@ int main(int argc, char* argv[]) {
     bool list_only = false;
     bool slice_read = false;
     bool trace_read = false;
+    bool stream_write = false;
     
     // Parse arguments
     for (int i = 1; i < argc; ++i) {
@@ -117,6 +119,8 @@ int main(int argc, char* argv[]) {
             slice_read = true;
         } else if (arg == "--trace-read") {
             trace_read = true;
+        } else if (arg == "--stream-write") {
+            stream_write = true;
         } else if (arg == "--big-volume") {
             preset_name = "3d-big-volume";
         } else if (arg == "--preset") {
@@ -310,6 +314,49 @@ int main(int argc, char* argv[]) {
                       << std::setw(12) << std::setprecision(1) << r.random_mbps
                       << "\n";
         }
+    }
+
+    // Streaming write benchmark
+    if (stream_write) {
+        std::cout << "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        std::cout << "Streaming Write Benchmark (" << config.nx * config.ny << " traces, "
+                  << config.nz << " samples/trace, "
+                  << std::fixed << std::setprecision(1)
+                  << (static_cast<double>(config.nz * sizeof(float)) / 1024.0) << " KB/trace)\n";
+        std::cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+
+        auto stream_results = runner.run_stream_write_all();
+
+        std::cout << std::left << std::setw(18) << "Format"
+                  << std::right << std::setw(12) << "Stream ms"
+                  << std::setw(12) << "Stream MB/s"
+                  << std::setw(10) << "Bulk ms"
+                  << std::setw(12) << "Bulk MB/s"
+                  << std::setw(10) << "Slowdown"
+                  << "\n";
+        std::cout << std::string(74, '-') << "\n";
+
+        for (const auto& r : stream_results) {
+            if (!r.available) {
+                std::cout << std::left << std::setw(18) << r.name
+                          << std::right << "  N/A\n";
+                continue;
+            }
+            if (!r.error.empty()) {
+                std::cout << std::left << std::setw(18) << r.name
+                          << "  ERROR: " << r.error << "\n";
+                continue;
+            }
+            std::cout << std::left << std::setw(18) << r.name
+                      << std::right << std::setw(12) << std::fixed << std::setprecision(1) << r.stream_write_ms
+                      << std::setw(12) << std::setprecision(1) << r.stream_write_mbps
+                      << std::setw(10) << std::setprecision(1) << r.bulk_write_ms
+                      << std::setw(12) << std::setprecision(1) << r.bulk_write_mbps
+                      << std::setw(10) << std::setprecision(1) << r.slowdown << "x"
+                      << "\n";
+        }
+
+        std::cout << "\n  Slowdown = stream_write_ms / bulk_write_ms (1.0x = no penalty)\n";
     }
 
     // Write report if requested

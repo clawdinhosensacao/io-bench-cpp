@@ -98,6 +98,21 @@ struct TraceReadResult {
     std::string error;
 };
 
+/// Result of a streaming write benchmark (append-only trace writes)
+struct StreamWriteResult {
+    std::string name;
+    bool available = false;
+    std::size_t num_traces = 0;          ///< Number of traces written
+    std::size_t samples_per_trace = 0;  ///< Samples per trace
+    double trace_size_kb = 0.0;         ///< Single trace size (KB)
+    double stream_write_ms = 0.0;       ///< Total time for streaming write (ms)
+    double stream_write_mbps = 0.0;     ///< Streaming write throughput (MB/s)
+    double bulk_write_ms = 0.0;         ///< Bulk write time for comparison (ms)
+    double bulk_write_mbps = 0.0;       ///< Bulk write throughput (MB/s)
+    double slowdown = 0.0;              ///< stream_write_ms / bulk_write_ms (>1 = streaming slower)
+    std::string error;
+};
+
 /// Format adapter interface
 class FormatAdapter {
 public:
@@ -142,6 +157,16 @@ public:
         const float* src = full.data() + (trace_idx * shape.nz);
         std::copy(src, src + shape.nz, trace_buf);
     }
+
+    /// Whether this format supports streaming (append) trace writes
+    [[nodiscard]] virtual bool supports_stream_write() const { return false; }
+
+    /// Write a single trace in streaming/append mode.
+    /// trace_buf contains nz samples for one trace.
+    /// trace_idx is the 0-based trace number (for formats that need it).
+    /// Default: not supported — will fall back to bulk write in benchmark.
+    virtual void write_trace(const std::string& /*path*/, const float* /*trace_buf*/,
+                            const ArrayShape& /*shape*/, std::size_t /*trace_idx*/) {}
 };
 
 /// Calculate throughput

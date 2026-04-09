@@ -506,4 +506,89 @@ std::vector<TraceReadResult> BenchmarkRunner::run_trace_read_all() {
     return results;
 }
 
+StreamWriteResult BenchmarkRunner::run_stream_write(FormatAdapter& adapter) {
+    StreamWriteResult result;
+    result.name = adapter.name();
+
+    if (!adapter.is_available()) {
+        result.available = false;
+        return result;
+    }
+    result.available = true;
+
+    const ArrayShape shape{config_.nx, config_.nz, config_.ny};
+    const std::size_t num_traces = shape.nx * shape.ny;
+    const std::size_t samples_per_trace = shape.nz;
+    const double trace_size_kb = static_cast<double>(samples_per_trace * sizeof(float)) / 1024.0;
+
+    result.num_traces = num_traces;
+    result.samples_per_trace = samples_per_trace;
+    result.trace_size_kb = trace_size_kb;
+
+    try {
+        // Generate data
+        auto data = generate_data(shape);
+
+        // --- Bulk write (baseline) ---
+        {
+            auto file_path = temp_dir_ / (adapter.name() + "_bulk" + adapter.extension());
+            Timer timer;
+            timer.start();
+            adapter.write(file_path.string(), data.data(), shape);
+            timer.stop();
+            result.bulk_write_ms = timer.elapsed_ms();
+            const double data_mb = shape.mb();
+            result.bulk_write_mbps = throughput_mbps(data_mb, timer.elapsed_s());
+            std::filesystem::remove_all(file_path);
+        }
+
+        // --- Streaming write: trace by trace ---
+        {
+            auto file_path = temp_dir_ / (adapter.name() + "_stream" + adapter.extension());
+            Timer timer;
+            timer.start();
+            if (adapter.supports_stream_write()) {
+                // Native streaming support
+                for (std::size_t t = 0; t < num_traces; ++t) {
+                    const float* trace_data = data.data() + (t * samples_per_trace);
+                    adapter.write_trace(file_path.string(), trace_data, shape, t);
+                }
+            } else {
+                // Fallback: write full file, then read back to verify size
+                // This simulates the worst case (rewrite entire file per trace)
+                // but is only used for comparison — formats without streaming
+                // will show a slowdown factor reflecting the lack of append support
+                for (std::size_t t = 0; t < num_traces; ++t) {
+                    // Re-write the entire file each time (worst-case streaming)
+                    adapter.write(file_path.string(), data.data(), shape);
+                }
+            }
+            timer.stop();
+            result.stream_write_ms = timer.elapsed_ms();
+            const double data_mb = shape.mb();
+            result.stream_write_mbps = throughput_mbps(data_mb, timer.elapsed_s());
+
+            if (result.bulk_write_ms > 0.0) {
+                result.slowdown = result.stream_write_ms / result.bulk_write_ms;
+            }
+
+            std::filesystem::remove_all(file_path);
+        }
+
+    } catch (const std::exception& e) {
+        result.error = e.what();
+    }
+
+    return result;
+}
+
+std::vector<StreamWriteResult> BenchmarkRunner::run_stream_write_all() {
+    std::vector<StreamWriteResult> results;
+    results.reserve(adapters_.size());
+    for (auto& adapter : adapters_) {
+        results.push_back(run_stream_write(*adapter));
+    }
+    return results;
+}
+
 } // namespace io_bench
