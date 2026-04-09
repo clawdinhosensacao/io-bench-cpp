@@ -89,9 +89,9 @@ void ZarrFormat::write(const std::string& path, const float* data, const ArraySh
                             
                             std::size_t idx;
                             if (shape.ny > 1) {
-                                idx = global_z * shape.ny * shape.nx + global_y * shape.nx + global_x;
+                                idx = (global_z * shape.ny * shape.nx) + (global_y * shape.nx) + global_x;
                             } else {
-                                idx = global_z * shape.nx + global_x;
+                                idx = (global_z * shape.nx) + global_x;
                             }
                             
                             chunk_out.write(reinterpret_cast<const char*>(&data[idx]), sizeof(float));
@@ -166,9 +166,9 @@ void ZarrFormat::read(const std::string& path, float* data, const ArrayShape& sh
                             
                             std::size_t idx;
                             if (shape.ny > 1) {
-                                idx = global_z * shape.ny * shape.nx + global_y * shape.nx + global_x;
+                                idx = (global_z * shape.ny * shape.nx) + (global_y * shape.nx) + global_x;
                             } else {
-                                idx = global_z * shape.nx + global_x;
+                                idx = (global_z * shape.nx) + global_x;
                             }
                             
                             chunk_in.read(reinterpret_cast<char*>(&data[idx]), sizeof(float));

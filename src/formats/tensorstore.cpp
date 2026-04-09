@@ -12,7 +12,7 @@ namespace io_bench {
 bool TensorStoreFormat::is_available() const {
     // TensorStore has no public C++ API; use Python bridge
     // Check if the Python tensorstore module is importable
-    int ret = std::system("python3 -c 'import tensorstore' 2>/dev/null");
+    int ret = std::system("python3 -c 'import tensorstore' 2>/dev/null");  // NOLINT(bugprone-command-processor)
     return ret == 0;
 }
 
@@ -20,7 +20,7 @@ static std::string write_temp_script(const std::string& content) {
     // Create a temp Python script file to avoid shell quoting issues
     std::string tmp_path = std::filesystem::temp_directory_path() / "ts_bench_write.py";
     std::ofstream f(tmp_path);
-    if (!f) throw std::runtime_error("TensorStore: cannot create temp script");
+    if (!f) { throw std::runtime_error("TensorStore: cannot create temp script"); }
     f << content;
     f.close();
     return tmp_path;
@@ -33,7 +33,7 @@ void TensorStoreFormat::write(const std::string& path, const float* data, const 
     // Write raw binary
     {
         std::ofstream f(tmp_bin, std::ios::binary);
-        if (!f) throw std::runtime_error("TensorStore: cannot write temp binary");
+        if (!f) { throw std::runtime_error("TensorStore: cannot write temp binary"); }
         f.write(reinterpret_cast<const char*>(data), shape.bytes());
     }
 
@@ -61,7 +61,7 @@ void TensorStoreFormat::write(const std::string& path, const float* data, const 
 
     std::string script_path = write_temp_script(script.str());
     std::string cmd = "python3 " + script_path + " " + tmp_bin + " " + path + " 2>&1";
-    int ret = std::system(cmd.c_str());
+    int ret = std::system(cmd.c_str());  // NOLINT(bugprone-command-processor)
 
     // Clean up
     std::remove(tmp_bin.c_str());
@@ -92,7 +92,7 @@ void TensorStoreFormat::read(const std::string& path, float* data, const ArraySh
 
     std::string script_path = write_temp_script(script.str());
     std::string cmd = "python3 " + script_path + " " + path + " " + tmp_bin + " 2>&1";
-    int ret = std::system(cmd.c_str());
+    int ret = std::system(cmd.c_str());  // NOLINT(bugprone-command-processor)
 
     if (ret != 0) {
         std::remove(tmp_bin.c_str());
