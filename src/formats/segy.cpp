@@ -131,8 +131,8 @@ void SegyFormat::read(const std::string& path, float* data, const ArrayShape& sh
     in.read(binary_header.data(), BINARY_HEADER_SIZE);
     
     // Get number of samples per trace
-    auto nsamples = (static_cast<uint16_t>(static_cast<unsigned char>(binary_header[22])) << 8) |
-                        static_cast<uint16_t>(static_cast<unsigned char>(binary_header[23]));
+    uint16_t nsamples = static_cast<uint16_t>((static_cast<uint16_t>(static_cast<unsigned char>(binary_header[22])) << 8) |
+                        static_cast<uint16_t>(static_cast<unsigned char>(binary_header[23])));
     
     if (nsamples != shape.nz) {
         throw std::runtime_error("SEG-Y: Sample count mismatch");

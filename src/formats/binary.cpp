@@ -212,7 +212,7 @@ void DirectIOFormat::write(const std::string& path, const float* data, const Arr
     ::close(fd);
     free(buf);
 
-    if (written < 0 || static_cast<std::size_t>(written) < raw_bytes) {
+    if (written < 0 || static_cast<std::size_t>(written) < raw_bytes) {  // NOLINT(modernize-use-integer-sign-comparison)
         throw std::runtime_error("DirectIO: write failed for: " + path);
     }
 
