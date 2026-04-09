@@ -11,22 +11,22 @@ namespace io_bench {
 
 /// Find a Python interpreter that has the obspy module available
 static bool check_obspy_python() {
-    int ret = std::system("python3.13 -c 'import obspy' 2>/dev/null");
-    if (ret == 0) return true;
-    ret = std::system("python3 -c 'import obspy' 2>/dev/null");
+    int ret = std::system("python3.13 -c 'import obspy' 2>/dev/null");  // NOLINT(bugprone-command-processor)
+    if (ret == 0) { return true; }
+    ret = std::system("python3 -c 'import obspy' 2>/dev/null");  // NOLINT(bugprone-command-processor)
     return ret == 0;
 }
 
 static const char* mseed_python() {
-    int ret = std::system("python3.13 -c 'import obspy' 2>/dev/null");
-    if (ret == 0) return "python3.13";
+    int ret = std::system("python3.13 -c 'import obspy' 2>/dev/null");  // NOLINT(bugprone-command-processor)
+    if (ret == 0) { return "python3.13"; }
     return "python3";
 }
 
 static std::string write_temp_script(const std::string& content, const std::string& name) {
     std::string tmp_path = std::filesystem::temp_directory_path() / name;
     std::ofstream f(tmp_path);
-    if (!f) throw std::runtime_error("MiniSEED: cannot create temp script");
+    if (!f) { throw std::runtime_error("MiniSEED: cannot create temp script"); }
     f << content;
     f.close();
     return tmp_path;
@@ -42,7 +42,7 @@ void MiniSeedFormat::write(const std::string& path, const float* data, const Arr
 
     {
         std::ofstream f(tmp_bin, std::ios::binary);
-        if (!f) throw std::runtime_error("MiniSEED: cannot write temp binary");
+        if (!f) { throw std::runtime_error("MiniSEED: cannot write temp binary"); }
         f.write(reinterpret_cast<const char*>(data), shape.bytes());
     }
 
@@ -67,7 +67,7 @@ void MiniSeedFormat::write(const std::string& path, const float* data, const Arr
 
     std::string script_path = write_temp_script(script.str(), "mseed_bench_write.py");
     std::string cmd = std::string(mseed_python()) + " " + script_path + " " + tmp_bin + " " + path + " 2>&1";
-    int ret = std::system(cmd.c_str());
+    int ret = std::system(cmd.c_str());  // NOLINT(bugprone-command-processor)
 
     std::remove(tmp_bin.c_str());
     std::remove(script_path.c_str());
@@ -96,7 +96,7 @@ void MiniSeedFormat::read(const std::string& path, float* data, const ArrayShape
 
     std::string script_path = write_temp_script(script.str(), "mseed_bench_read.py");
     std::string cmd = std::string(mseed_python()) + " " + script_path + " " + path + " " + tmp_bin + " 2>&1";
-    int ret = std::system(cmd.c_str());
+    int ret = std::system(cmd.c_str());  // NOLINT(bugprone-command-processor)
 
     if (ret != 0) {
         std::remove(tmp_bin.c_str());

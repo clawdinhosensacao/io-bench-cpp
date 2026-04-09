@@ -12,24 +12,24 @@ namespace io_bench {
 /// Find a Python interpreter that has the mdio module available
 static bool check_mdio_python() {
     // Try python3.13 first (known to have mdio installed)
-    int ret = std::system("python3.13 -c 'import mdio' 2>/dev/null");
-    if (ret == 0) return true;
+    int ret = std::system("python3.13 -c 'import mdio' 2>/dev/null");  // NOLINT(bugprone-command-processor)
+    if (ret == 0) { return true; }
     // Fallback to python3
-    ret = std::system("python3 -c 'import mdio' 2>/dev/null");
+    ret = std::system("python3 -c 'import mdio' 2>/dev/null");  // NOLINT(bugprone-command-processor)
     return ret == 0;
 }
 
 /// Get the Python interpreter path that has mdio
 static const char* mdio_python() {
-    int ret = std::system("python3.13 -c 'import mdio' 2>/dev/null");
-    if (ret == 0) return "python3.13";
+    int ret = std::system("python3.13 -c 'import mdio' 2>/dev/null");  // NOLINT(bugprone-command-processor)
+    if (ret == 0) { return "python3.13"; }
     return "python3";
 }
 
 static std::string write_temp_script(const std::string& content, const std::string& name) {
     std::string tmp_path = std::filesystem::temp_directory_path() / name;
     std::ofstream f(tmp_path);
-    if (!f) throw std::runtime_error("MDIO: cannot create temp script");
+    if (!f) { throw std::runtime_error("MDIO: cannot create temp script"); }
     f << content;
     f.close();
     return tmp_path;
@@ -46,7 +46,7 @@ void MdioFormat::write(const std::string& path, const float* data, const ArraySh
     // Write raw binary
     {
         std::ofstream f(tmp_bin, std::ios::binary);
-        if (!f) throw std::runtime_error("MDIO: cannot write temp binary");
+        if (!f) { throw std::runtime_error("MDIO: cannot write temp binary"); }
         f.write(reinterpret_cast<const char*>(data), shape.bytes());
     }
 
@@ -78,7 +78,7 @@ void MdioFormat::write(const std::string& path, const float* data, const ArraySh
 
     std::string script_path = write_temp_script(script.str(), "mdio_bench_write.py");
     std::string cmd = std::string(mdio_python()) + " " + script_path + " " + tmp_bin + " " + path + " 2>&1";
-    int ret = std::system(cmd.c_str());
+    int ret = std::system(cmd.c_str());  // NOLINT(bugprone-command-processor)
 
     // Clean up
     std::remove(tmp_bin.c_str());
@@ -109,7 +109,7 @@ void MdioFormat::read(const std::string& path, float* data, const ArrayShape& sh
 
     std::string script_path = write_temp_script(script.str(), "mdio_bench_read.py");
     std::string cmd = std::string(mdio_python()) + " " + script_path + " " + path + " " + tmp_bin + " 2>&1";
-    int ret = std::system(cmd.c_str());
+    int ret = std::system(cmd.c_str());  // NOLINT(bugprone-command-processor)
 
     if (ret != 0) {
         std::remove(tmp_bin.c_str());

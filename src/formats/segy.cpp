@@ -32,7 +32,7 @@ void SegyFormat::write(const std::string& path, const float* data, const ArraySh
     std::vector<char> binary_header(BINARY_HEADER_SIZE, 0);
     
     // Number of samples per trace (bytes 3224-3225, big-endian)
-    uint16_t nsamples = static_cast<uint16_t>(shape.nz);
+    auto nsamples = static_cast<uint16_t>(shape.nz);
     binary_header[22] = static_cast<char>((nsamples >> 8) & 0xFF);
     binary_header[23] = static_cast<char>(nsamples & 0xFF);
     
@@ -63,7 +63,7 @@ void SegyFormat::write(const std::string& path, const float* data, const ArraySh
         std::vector<char> trace_header(TRACE_HEADER_SIZE, 0);
         
         // Trace sequence number (bytes 1-4)
-        uint32_t seq = static_cast<uint32_t>(trace_idx + 1);
+        auto seq = static_cast<uint32_t>(trace_idx + 1);
         trace_header[0] = static_cast<char>((seq >> 24) & 0xFF);
         trace_header[1] = static_cast<char>((seq >> 16) & 0xFF);
         trace_header[2] = static_cast<char>((seq >> 8) & 0xFF);
@@ -71,7 +71,7 @@ void SegyFormat::write(const std::string& path, const float* data, const ArraySh
         
         // CDP X coordinate (bytes 81-84)
         // For simplicity, use trace index * 100
-        int32_t cdp_x = static_cast<int32_t>((trace_idx % shape.nx) * 100);
+        auto cdp_x = static_cast<int32_t>((trace_idx % shape.nx) * 100);
         trace_header[80] = static_cast<char>((cdp_x >> 24) & 0xFF);
         trace_header[81] = static_cast<char>((cdp_x >> 16) & 0xFF);
         trace_header[82] = static_cast<char>((cdp_x >> 8) & 0xFF);
