@@ -82,6 +82,22 @@ struct SliceReadResult {
     std::string error;
 };
 
+/// Result of a trace read benchmark (SEG-Y trace-based access pattern)
+struct TraceReadResult {
+    std::string name;
+    bool available = false;
+    double file_size_mb = 0.0;       ///< Total file size (MB)
+    std::size_t num_traces = 0;      ///< Number of traces in the file
+    std::size_t samples_per_trace = 0;  ///< Samples per trace
+    double trace_size_kb = 0.0;      ///< Single trace size (KB)
+    double sequential_read_ms = 0.0; ///< Time to read all traces sequentially (ms)
+    double sequential_mbps = 0.0;    ///< Sequential read throughput (MB/s)
+    double random_read_ms = 0.0;     ///< Time to read N random traces (ms)
+    double random_mbps = 0.0;        ///< Random trace read throughput (MB/s)
+    double random_traces_read = 0.0; ///< Number of traces read in random test
+    std::string error;
+};
+
 /// Format adapter interface
 class FormatAdapter {
 public:
@@ -109,6 +125,22 @@ public:
         const std::size_t slice_elements = shape.nx * shape.nz;
         const float* src = full.data() + (iy * slice_elements);
         std::copy(src, src + slice_elements, slice_buf);
+    }
+
+    /// Whether this format supports trace-based random access reads
+    [[nodiscard]] virtual bool supports_trace_read() const { return false; }
+
+    /// Read a single trace (z-samples at a given trace index).
+    /// trace_buf must have space for nz floats.
+    /// trace_idx is the trace number (0-based).
+    /// Default implementation: read full volume and extract the trace.
+    virtual void read_trace(const std::string& path, float* trace_buf,
+                            const ArrayShape& shape, std::size_t trace_idx) {
+        // Fallback: read entire volume and extract the trace
+        std::vector<float> full(shape.total());
+        read(path, full.data(), shape);
+        const float* src = full.data() + (trace_idx * shape.nz);
+        std::copy(src, src + shape.nz, trace_buf);
     }
 };
 

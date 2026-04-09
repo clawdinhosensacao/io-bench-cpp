@@ -99,3 +99,39 @@ TEST_F(BenchmarkTest, BigVolumeShapeIsApprox300MB) {
     EXPECT_NEAR(big_shape.mb(), 307.3, 0.5);
     EXPECT_TRUE(big_shape.is_3d());
 }
+
+TEST_F(BenchmarkTest, TraceReadResultDefaults) {
+    io_bench::TraceReadResult result;
+    EXPECT_TRUE(result.name.empty());
+    EXPECT_FALSE(result.available);
+    EXPECT_EQ(result.num_traces, 0u);
+    EXPECT_EQ(result.samples_per_trace, 0u);
+    EXPECT_DOUBLE_EQ(result.trace_size_kb, 0.0);
+    EXPECT_DOUBLE_EQ(result.sequential_read_ms, 0.0);
+    EXPECT_DOUBLE_EQ(result.sequential_mbps, 0.0);
+    EXPECT_DOUBLE_EQ(result.random_read_ms, 0.0);
+    EXPECT_DOUBLE_EQ(result.random_mbps, 0.0);
+    EXPECT_DOUBLE_EQ(result.random_traces_read, 0.0);
+    EXPECT_TRUE(result.error.empty());
+}
+
+TEST_F(BenchmarkTest, FormatAdapterDefaultTraceReadFallback) {
+    // Default FormatAdapter::read_trace should fall back to full read + extract
+    io_bench::BinaryFormat format;
+    EXPECT_FALSE(format.supports_trace_read());
+
+    // Write a small dataset
+    io_bench::ArrayShape shape{4, 3};  // 4 traces, 3 samples each
+    std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f};
+    std::string path = std::filesystem::temp_directory_path() / "trace_test.bin";
+    format.write(path, data.data(), shape);
+
+    // Read trace 2 (should be {7, 8, 9})
+    std::vector<float> trace_buf(3, 0.0f);
+    format.read_trace(path, trace_buf.data(), shape, 2);
+    EXPECT_FLOAT_EQ(trace_buf[0], 7.0f);
+    EXPECT_FLOAT_EQ(trace_buf[1], 8.0f);
+    EXPECT_FLOAT_EQ(trace_buf[2], 9.0f);
+
+    std::filesystem::remove(path);
+}

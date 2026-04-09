@@ -415,4 +415,95 @@ std::vector<SliceReadResult> BenchmarkRunner::run_slice_read_all() {
     return results;
 }
 
+TraceReadResult BenchmarkRunner::run_trace_read(FormatAdapter& adapter) {
+    TraceReadResult result;
+    result.name = adapter.name();
+
+    if (!adapter.is_available()) {
+        result.available = false;
+        return result;
+    }
+    result.available = true;
+
+    const ArrayShape shape{config_.nx, config_.nz, config_.ny};
+    const std::size_t num_traces = shape.nx * shape.ny;
+    const std::size_t samples_per_trace = shape.nz;
+    const double trace_size_kb = static_cast<double>(samples_per_trace * sizeof(float)) / 1024.0;
+
+    result.num_traces = num_traces;
+    result.samples_per_trace = samples_per_trace;
+    result.trace_size_kb = trace_size_kb;
+
+    try {
+        // Generate data and write file
+        auto data = generate_data(shape);
+        auto file_path = temp_dir_ / (adapter.name() + adapter.extension());
+
+        adapter.write(file_path.string(), data.data(), shape);
+
+        // File size
+        if (std::filesystem::is_directory(file_path)) {
+            std::uintmax_t dir_size = 0;
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(file_path)) {
+                if (entry.is_regular_file()) { dir_size += entry.file_size(); }
+            }
+            result.file_size_mb = static_cast<double>(dir_size) / (1024.0 * 1024.0);
+        } else {
+            result.file_size_mb = static_cast<double>(std::filesystem::file_size(file_path)) / (1024.0 * 1024.0);
+        }
+
+        // --- Sequential trace read: read all traces one by one ---
+        {
+            std::vector<float> trace_buf(samples_per_trace);
+            Timer timer;
+            timer.start();
+            for (std::size_t t = 0; t < num_traces; ++t) {
+                adapter.read_trace(file_path.string(), trace_buf.data(), shape, t);
+            }
+            timer.stop();
+            result.sequential_read_ms = timer.elapsed_ms();
+            const double data_mb = static_cast<double>(num_traces * samples_per_trace * sizeof(float)) / (1024.0 * 1024.0);
+            result.sequential_mbps = throughput_mbps(data_mb, timer.elapsed_s());
+        }
+
+        // --- Random trace read: read 100 random traces ---
+        {
+            const std::size_t random_count = std::min(num_traces, std::size_t{100});
+            std::vector<std::size_t> trace_indices(random_count);
+            // Pseudo-random trace selection (deterministic seed)
+            for (std::size_t i = 0; i < random_count; ++i) {
+                trace_indices[i] = (i * 7919 + 1) % num_traces;
+            }
+            std::vector<float> trace_buf(samples_per_trace);
+            Timer timer;
+            timer.start();
+            for (std::size_t i = 0; i < random_count; ++i) {
+                adapter.read_trace(file_path.string(), trace_buf.data(), shape, trace_indices[i]);
+            }
+            timer.stop();
+            result.random_read_ms = timer.elapsed_ms();
+            result.random_traces_read = static_cast<double>(random_count);
+            const double data_mb = static_cast<double>(random_count * samples_per_trace * sizeof(float)) / (1024.0 * 1024.0);
+            result.random_mbps = throughput_mbps(data_mb, timer.elapsed_s());
+        }
+
+        // Cleanup
+        std::filesystem::remove_all(file_path);
+
+    } catch (const std::exception& e) {
+        result.error = e.what();
+    }
+
+    return result;
+}
+
+std::vector<TraceReadResult> BenchmarkRunner::run_trace_read_all() {
+    std::vector<TraceReadResult> results;
+    results.reserve(adapters_.size());
+    for (auto& adapter : adapters_) {
+        results.push_back(run_trace_read(*adapter));
+    }
+    return results;
+}
+
 } // namespace io_bench

@@ -48,6 +48,12 @@ public:
     /// Run slice read benchmark for a single format
     [[nodiscard]] SliceReadResult run_slice_read(FormatAdapter& adapter);
     
+    /// Run trace read benchmark for all formats
+    [[nodiscard]] std::vector<TraceReadResult> run_trace_read_all();
+
+    /// Run trace read benchmark for a single format
+    [[nodiscard]] TraceReadResult run_trace_read(FormatAdapter& adapter);
+    
     /// Generate test data
     [[nodiscard]] static std::vector<float> generate_data(const ArrayShape& shape, unsigned int seed = 0);
     

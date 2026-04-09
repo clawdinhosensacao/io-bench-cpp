@@ -51,6 +51,7 @@ void print_usage(const char* prog) {
               << "  --iterations <n>   Number of iterations (default: 1)\n"
               << "  --threads <n>      Number of parallel read threads (default: 1, sequential)\n"
               << "  --slice-read       Run inline slice read benchmark (requires 3D volume, ny>1)\n"
+              << "  --trace-read       Run trace read benchmark (sequential + random trace access)\n"
               << "  --big-volume       Shortcut for --preset 3d-big-volume (401×401×501, ~307 MB)\n"
               << "  --preset <name>    Use geophysics preset (overrides nx/nz/ny/iterations)\n"
               << "  --list-presets     List available geophysics presets\n"
@@ -83,6 +84,7 @@ int main(int argc, char* argv[]) {
     std::string preset_name;
     bool list_only = false;
     bool slice_read = false;
+    bool trace_read = false;
     
     // Parse arguments
     for (int i = 1; i < argc; ++i) {
@@ -113,6 +115,8 @@ int main(int argc, char* argv[]) {
             config.parallel_threads = std::stoul(get_value());
         } else if (arg == "--slice-read") {
             slice_read = true;
+        } else if (arg == "--trace-read") {
+            trace_read = true;
         } else if (arg == "--big-volume") {
             preset_name = "3d-big-volume";
         } else if (arg == "--preset") {
@@ -266,7 +270,48 @@ int main(int argc, char* argv[]) {
             std::cout << "  Ideal speedup = " << config.ny << "x (reading 1/" << config.ny << " of volume)\n";
         }
     }
-    
+
+    // Trace read benchmark
+    if (trace_read) {
+        std::cout << "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        std::cout << "Trace Read Benchmark (" << config.nx * config.ny << " traces, "
+                  << config.nz << " samples/trace, "
+                  << std::fixed << std::setprecision(1)
+                  << (static_cast<double>(config.nz * sizeof(float)) / 1024.0) << " KB/trace)\n";
+        std::cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+
+        auto trace_results = runner.run_trace_read_all();
+
+        std::cout << std::left << std::setw(18) << "Format"
+                  << std::right << std::setw(8) << "Traces"
+                  << std::setw(12) << "Seq ms"
+                  << std::setw(12) << "Seq MB/s"
+                  << std::setw(12) << "Rand ms"
+                  << std::setw(12) << "Rand MB/s"
+                  << "\n";
+        std::cout << std::string(74, '-') << "\n";
+
+        for (const auto& r : trace_results) {
+            if (!r.available) {
+                std::cout << std::left << std::setw(18) << r.name
+                          << std::right << "  N/A\n";
+                continue;
+            }
+            if (!r.error.empty()) {
+                std::cout << std::left << std::setw(18) << r.name
+                          << "  ERROR: " << r.error << "\n";
+                continue;
+            }
+            std::cout << std::left << std::setw(18) << r.name
+                      << std::right << std::setw(8) << r.num_traces
+                      << std::setw(12) << std::fixed << std::setprecision(1) << r.sequential_read_ms
+                      << std::setw(12) << std::setprecision(1) << r.sequential_mbps
+                      << std::setw(12) << std::setprecision(1) << r.random_read_ms
+                      << std::setw(12) << std::setprecision(1) << r.random_mbps
+                      << "\n";
+        }
+    }
+
     // Write report if requested
     if (!output_path.empty()) {
         auto report = io_bench::generate_markdown_report(results, config);
