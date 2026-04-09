@@ -543,25 +543,13 @@ StreamWriteResult BenchmarkRunner::run_stream_write(FormatAdapter& adapter) {
         }
 
         // --- Streaming write: trace by trace ---
-        {
+        if (adapter.supports_stream_write()) {
             auto file_path = temp_dir_ / (adapter.name() + "_stream" + adapter.extension());
             Timer timer;
             timer.start();
-            if (adapter.supports_stream_write()) {
-                // Native streaming support
-                for (std::size_t t = 0; t < num_traces; ++t) {
-                    const float* trace_data = data.data() + (t * samples_per_trace);
-                    adapter.write_trace(file_path.string(), trace_data, shape, t);
-                }
-            } else {
-                // Fallback: write full file, then read back to verify size
-                // This simulates the worst case (rewrite entire file per trace)
-                // but is only used for comparison — formats without streaming
-                // will show a slowdown factor reflecting the lack of append support
-                for (std::size_t t = 0; t < num_traces; ++t) {
-                    // Re-write the entire file each time (worst-case streaming)
-                    adapter.write(file_path.string(), data.data(), shape);
-                }
+            for (std::size_t t = 0; t < num_traces; ++t) {
+                const float* trace_data = data.data() + (t * samples_per_trace);
+                adapter.write_trace(file_path.string(), trace_data, shape, t);
             }
             timer.stop();
             result.stream_write_ms = timer.elapsed_ms();
@@ -573,6 +561,11 @@ StreamWriteResult BenchmarkRunner::run_stream_write(FormatAdapter& adapter) {
             }
 
             std::filesystem::remove_all(file_path);
+        } else {
+            // Format does not support streaming writes
+            result.stream_write_ms = 0.0;
+            result.stream_write_mbps = 0.0;
+            result.slowdown = 0.0;
         }
 
     } catch (const std::exception& e) {

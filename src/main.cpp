@@ -356,8 +356,13 @@ int main(int argc, char* argv[]) {
                       << std::setw(12) << std::setprecision(1) << r.stream_write_mbps
                       << std::setw(10) << std::setprecision(1) << r.bulk_write_ms
                       << std::setw(12) << std::setprecision(1) << r.bulk_write_mbps
-                      << std::setw(10) << std::setprecision(1) << r.slowdown << "x"
-                      << "\n";
+                      << std::setw(10);
+            if (r.slowdown > 0.0) {
+                std::cout << std::setprecision(1) << r.slowdown << "x";
+            } else {
+                std::cout << "N/A";
+            }
+            std::cout << "\n";
         }
 
         std::cout << "\n  Slowdown = stream_write_ms / bulk_write_ms (1.0x = no penalty)\n";
