@@ -91,3 +91,11 @@ TEST_F(BenchmarkTest, JsonFormatIsAvailable) {
     io_bench::JsonFormat format;
     EXPECT_TRUE(format.is_available());
 }
+
+TEST_F(BenchmarkTest, BigVolumeShapeIsApprox300MB) {
+    // 3d-big-volume preset: 401 × 401 × 501
+    io_bench::ArrayShape big_shape{401, 401, 501};
+    EXPECT_EQ(big_shape.total(), 401UL * 401UL * 501UL);
+    EXPECT_NEAR(big_shape.mb(), 307.3, 0.5);
+    EXPECT_TRUE(big_shape.is_3d());
+}

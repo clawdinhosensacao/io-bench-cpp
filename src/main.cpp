@@ -28,6 +28,9 @@ static const std::vector<GeoPreset> geo_presets = {
     {"3d-large-survey",
      "Large 3D survey volume (600 × 400 × 300, ~275 MB float32)",
      600, 400, 300, 1},
+    {"3d-big-volume",
+     "Big 3D volume for throughput at realistic seismic scale (401 × 401 × 501, ~307 MB)",
+     401, 401, 501, 1},
     {"shot-gather",
      "Single shot gather (640 receivers × 4001 time samples, ~10 MB)",
      640, 4001, 1, 5},
@@ -45,6 +48,7 @@ void print_usage(const char* prog) {
               << "  --iterations <n>   Number of iterations (default: 1)\n"
               << "  --threads <n>      Number of parallel read threads (default: 1, sequential)\n"
               << "  --slice-read       Run inline slice read benchmark (requires 3D volume, ny>1)\n"
+              << "  --big-volume       Shortcut for --preset 3d-big-volume (401×401×501, ~307 MB)\n"
               << "  --preset <name>    Use geophysics preset (overrides nx/nz/ny/iterations)\n"
               << "  --list-presets     List available geophysics presets\n"
               << "  --output <path>    Output markdown report path\n"
@@ -106,6 +110,8 @@ int main(int argc, char* argv[]) {
             config.parallel_threads = std::stoul(get_value());
         } else if (arg == "--slice-read") {
             slice_read = true;
+        } else if (arg == "--big-volume") {
+            preset_name = "3d-big-volume";
         } else if (arg == "--preset") {
             preset_name = get_value();
         } else if (arg == "--list-presets") {
