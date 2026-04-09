@@ -42,6 +42,12 @@ public:
     /// Run parallel read benchmark for a single format
     [[nodiscard]] ParallelReadResult run_parallel_read(FormatAdapter& adapter);
     
+    /// Run slice read benchmark for all formats
+    [[nodiscard]] std::vector<SliceReadResult> run_slice_read_all();
+    
+    /// Run slice read benchmark for a single format
+    [[nodiscard]] SliceReadResult run_slice_read(FormatAdapter& adapter);
+    
     /// Generate test data
     [[nodiscard]] static std::vector<float> generate_data(const ArrayShape& shape, unsigned int seed = 0);
     

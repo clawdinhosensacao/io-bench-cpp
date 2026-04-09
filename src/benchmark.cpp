@@ -305,4 +305,107 @@ std::vector<ParallelReadResult> BenchmarkRunner::run_parallel_read_all() {
     return results;
 }
 
+SliceReadResult BenchmarkRunner::run_slice_read(FormatAdapter& adapter) {
+    SliceReadResult result;
+    result.name = adapter.name();
+    result.available = adapter.is_available();
+    result.supports_slice = adapter.supports_slice_read();
+
+    if (!result.available) {
+        return result;
+    }
+
+    // Only makes sense for 3D volumes
+    if (config_.ny <= 1) {
+        result.error = "Slice read requires 3D volume (ny > 1)";
+        return result;
+    }
+
+    ArrayShape shape{.nx=config_.nx, .nz=config_.nz, .ny=config_.ny};
+    auto data = generate_data(shape);
+    auto file_path = temp_dir_ / (adapter.name() + adapter.extension());
+    std::string path_str = file_path.string();
+
+    try {
+        // Write the full volume
+        adapter.write(path_str, data.data(), shape);
+
+        // Get file size
+        if (std::filesystem::is_directory(file_path)) {
+            std::uintmax_t dir_size = 0;
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(file_path)) {
+                if (std::filesystem::is_regular_file(entry)) {
+                    dir_size += std::filesystem::file_size(entry);
+                }
+            }
+            result.file_size_mb = static_cast<double>(dir_size) / (1024.0 * 1024.0);
+        } else {
+            result.file_size_mb = static_cast<double>(std::filesystem::file_size(file_path)) / (1024.0 * 1024.0);
+        }
+
+        const std::size_t slice_elements = shape.nx * shape.nz;
+        result.slice_size_mb = static_cast<double>(slice_elements * sizeof(float)) / (1024.0 * 1024.0);
+
+        // Warmup
+        {
+            std::vector<float> warmup_full(shape.total());
+            adapter.read(path_str, warmup_full.data(), shape);
+            std::vector<float> warmup_slice(slice_elements);
+            adapter.read_slice(path_str, warmup_slice.data(), shape, shape.ny / 2);
+        }
+
+        // Read the middle inline slice (iy = ny/2)
+        std::vector<float> slice_buf(slice_elements);
+        Timer slice_timer;
+        slice_timer.start();
+        adapter.read_slice(path_str, slice_buf.data(), shape, shape.ny / 2);
+        slice_timer.stop();
+        result.slice_read_ms = slice_timer.elapsed_ms();
+
+        // Read the full volume for comparison
+        std::vector<float> full_buf(shape.total());
+        Timer full_timer;
+        full_timer.start();
+        adapter.read(path_str, full_buf.data(), shape);
+        full_timer.stop();
+        result.full_read_ms = full_timer.elapsed_ms();
+
+        // Throughput
+        result.slice_read_mbps = throughput_mbps(result.slice_size_mb, result.slice_read_ms / 1000.0);
+        result.full_read_mbps = throughput_mbps(result.file_size_mb, result.full_read_ms / 1000.0);
+
+        // Speedup: how much faster is slice read vs full read?
+        // Ideal: ny (reading 1/ny of the data)
+        if (result.slice_read_ms > 0.0) {
+            result.speedup = result.full_read_ms / result.slice_read_ms;
+        }
+
+        // Verify slice data against source
+        const float* expected = data.data() + (shape.ny / 2) * slice_elements;
+        for (std::size_t i = 0; i < slice_elements; ++i) {
+            if (std::abs(expected[i] - slice_buf[i]) > 0.001f) {
+                result.error = "Slice data integrity check failed";
+                break;
+            }
+        }
+
+        // Cleanup
+        std::filesystem::remove_all(file_path);
+
+    } catch (const std::exception& e) {
+        result.error = e.what();
+    }
+
+    return result;
+}
+
+std::vector<SliceReadResult> BenchmarkRunner::run_slice_read_all() {
+    std::vector<SliceReadResult> results;
+    results.reserve(adapters_.size());
+    for (auto& adapter : adapters_) {
+        results.push_back(run_slice_read(*adapter));
+    }
+    return results;
+}
+
 } // namespace io_bench

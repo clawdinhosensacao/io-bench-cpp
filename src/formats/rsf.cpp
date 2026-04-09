@@ -85,4 +85,18 @@ void RsfFormat::read(const std::string& path, float* data, const ArrayShape& sha
     df.read(reinterpret_cast<char*>(data), shape.bytes());
 }
 
+void RsfFormat::read_slice(const std::string& path, float* slice_buf,
+                            const ArrayShape& shape, std::size_t iy) {
+    const std::string data_path = path + "/data.bin";
+    const std::size_t slice_elements = shape.nx * shape.nz;
+    const std::size_t offset = iy * slice_elements * sizeof(float);
+
+    std::ifstream df(data_path, std::ios::binary);
+    if (!df) {
+        throw std::runtime_error("RSF: cannot read data file for slice: " + data_path);
+    }
+    df.seekg(static_cast<std::streamoff>(offset));
+    df.read(reinterpret_cast<char*>(slice_buf), slice_elements * sizeof(float));
+}
+
 } // namespace io_bench

@@ -44,6 +44,7 @@ void print_usage(const char* prog) {
               << "  --ny <n>           Grid size in Y for 3D (default: 1)\n"
               << "  --iterations <n>   Number of iterations (default: 1)\n"
               << "  --threads <n>      Number of parallel read threads (default: 1, sequential)\n"
+              << "  --slice-read       Run inline slice read benchmark (requires 3D volume, ny>1)\n"
               << "  --preset <name>    Use geophysics preset (overrides nx/nz/ny/iterations)\n"
               << "  --list-presets     List available geophysics presets\n"
               << "  --output <path>    Output markdown report path\n"
@@ -74,6 +75,7 @@ int main(int argc, char* argv[]) {
     std::string output_path;
     std::string preset_name;
     bool list_only = false;
+    bool slice_read = false;
     
     // Parse arguments
     for (int i = 1; i < argc; ++i) {
@@ -102,6 +104,8 @@ int main(int argc, char* argv[]) {
             config.iterations = std::stoul(get_value());
         } else if (arg == "--threads") {
             config.parallel_threads = std::stoul(get_value());
+        } else if (arg == "--slice-read") {
+            slice_read = true;
         } else if (arg == "--preset") {
             preset_name = get_value();
         } else if (arg == "--list-presets") {
@@ -201,6 +205,56 @@ int main(int argc, char* argv[]) {
                       << std::setw(12) << std::setprecision(1) << r.data_size_mb
                       << std::setw(14) << std::setprecision(1) << r.aggregate_mbps
                       << "\n";
+        }
+    }
+    
+    // Slice read benchmark
+    if (slice_read) {
+        if (config.ny <= 1) {
+            std::cerr << "\nError: --slice-read requires a 3D volume. Use --ny N (N>1) or a 3D preset.\n";
+        } else {
+            std::cout << "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+            std::cout << "Inline Slice Read Benchmark (3D: " << config.nx << "×" << config.nz << "×" << config.ny << ")\n";
+            std::cout << "Reading middle inline (iy=" << config.ny/2 << ") vs full volume\n";
+            std::cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+            
+            auto slice_results = runner.run_slice_read_all();
+            
+            std::cout << std::left << std::setw(18) << "Format"
+                      << std::right << std::setw(6) << "Slice"
+                      << std::setw(12) << "Slice MB"
+                      << std::setw(12) << "Slice ms"
+                      << std::setw(12) << "Slice MB/s"
+                      << std::setw(12) << "Full ms"
+                      << std::setw(12) << "Full MB/s"
+                      << std::setw(10) << "Speedup"
+                      << "\n";
+            std::cout << std::string(92, '-') << "\n";
+            
+            for (const auto& r : slice_results) {
+                if (!r.available) {
+                    std::cout << std::left << std::setw(18) << r.name
+                              << std::right << "  N/A\n";
+                    continue;
+                }
+                if (!r.error.empty()) {
+                    std::cout << std::left << std::setw(18) << r.name
+                              << "  ERROR: " << r.error << "\n";
+                    continue;
+                }
+                std::cout << std::left << std::setw(18) << r.name
+                          << std::right << std::setw(6) << (r.supports_slice ? "✓" : "✗")
+                          << std::setw(12) << std::fixed << std::setprecision(2) << r.slice_size_mb
+                          << std::setw(12) << std::setprecision(1) << r.slice_read_ms
+                          << std::setw(12) << std::setprecision(1) << r.slice_read_mbps
+                          << std::setw(12) << std::setprecision(1) << r.full_read_ms
+                          << std::setw(12) << std::setprecision(1) << r.full_read_mbps
+                          << std::setw(10) << std::setprecision(1) << r.speedup << "x"
+                          << "\n";
+            }
+            
+            std::cout << "\n  ✓ = native slice support  ✗ = fallback (read all, extract slice)\n";
+            std::cout << "  Ideal speedup = " << config.ny << "x (reading 1/" << config.ny << " of volume)\n";
         }
     }
     

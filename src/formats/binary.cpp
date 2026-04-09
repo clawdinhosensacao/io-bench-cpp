@@ -29,6 +29,20 @@ void BinaryFormat::read(const std::string& path, float* data, const ArrayShape& 
     file.read(reinterpret_cast<char*>(data), shape.bytes());
 }
 
+void BinaryFormat::read_slice(const std::string& path, float* slice_buf,
+                               const ArrayShape& shape, std::size_t iy) {
+    // Binary layout: data[iy][iz][ix] — seek to iy * nx * nz * sizeof(float)
+    const std::size_t slice_elements = shape.nx * shape.nz;
+    const std::size_t offset = iy * slice_elements * sizeof(float);
+    
+    std::ifstream file(path, std::ios::binary);
+    if (!file) {
+        throw std::runtime_error("Cannot open file for slice read: " + path);
+    }
+    file.seekg(static_cast<std::streamoff>(offset));
+    file.read(reinterpret_cast<char*>(slice_buf), slice_elements * sizeof(float));
+}
+
 // Binary with header: [magic][nx][nz][data]
 // Header: 4 bytes magic "BINX" + 8 bytes nx + 8 bytes nz = 20 bytes
 static constexpr const char* BIN_MAGIC = "BINX";
@@ -108,6 +122,47 @@ void MmapFormat::read(const std::string& path, float* data, const ArrayShape& sh
         throw std::runtime_error("Cannot open file for reading: " + path);
     }
     file.read(reinterpret_cast<char*>(data), shape.bytes());
+#endif
+}
+
+void MmapFormat::read_slice(const std::string& path, float* slice_buf,
+                             const ArrayShape& shape, std::size_t iy) {
+#ifdef __unix__
+    const std::size_t slice_elements = shape.nx * shape.nz;
+    const std::size_t slice_bytes = slice_elements * sizeof(float);
+    const std::size_t offset = iy * slice_bytes;
+    
+    // Get page size for alignment
+    const long page_size = sysconf(_SC_PAGESIZE);
+    const std::size_t page_offset = offset % static_cast<std::size_t>(page_size);
+    const std::size_t map_offset = offset - page_offset;
+    const std::size_t map_size = slice_bytes + page_offset;
+    
+    int fd = ::open(path.c_str(), O_RDONLY);
+    if (fd < 0) {
+        throw std::runtime_error("Cannot open file for mmap slice: " + path);
+    }
+    
+    void* mapped = ::mmap(nullptr, map_size, PROT_READ, MAP_PRIVATE, fd, static_cast<off_t>(map_offset));
+    if (mapped == MAP_FAILED) {
+        ::close(fd);
+        throw std::runtime_error("mmap slice failed for: " + path);
+    }
+    
+    std::memcpy(slice_buf, static_cast<char*>(mapped) + page_offset, slice_bytes);
+    
+    ::munmap(mapped, map_size);
+    ::close(fd);
+#else
+    // Fallback: seek and read
+    std::ifstream file(path, std::ios::binary);
+    if (!file) {
+        throw std::runtime_error("Cannot open file for slice read: " + path);
+    }
+    const std::size_t slice_elements = shape.nx * shape.nz;
+    const std::size_t offset = iy * slice_elements * sizeof(float);
+    file.seekg(static_cast<std::streamoff>(offset));
+    file.read(reinterpret_cast<char*>(slice_buf), slice_elements * sizeof(float));
 #endif
 }
 

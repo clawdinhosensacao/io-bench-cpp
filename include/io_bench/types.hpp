@@ -65,6 +65,21 @@ private:
     std::chrono::high_resolution_clock::time_point end_;
 };
 
+/// Result of a slice read benchmark
+struct SliceReadResult {
+    std::string name;
+    bool available = false;
+    bool supports_slice = false;
+    double file_size_mb = 0.0;       ///< Total volume file size (MB)
+    double slice_size_mb = 0.0;      ///< Single inline slice size (MB)
+    double slice_read_ms = 0.0;     ///< Time to read one inline slice (ms)
+    double slice_read_mbps = 0.0;   ///< Throughput for slice read (MB/s)
+    double full_read_ms = 0.0;      ///< Time to read full volume (ms, for comparison)
+    double full_read_mbps = 0.0;    ///< Throughput for full volume read (MB/s)
+    double speedup = 0.0;           ///< full_read_ms / slice_read_ms (ideal = ny)
+    std::string error;
+};
+
 /// Format adapter interface
 class FormatAdapter {
 public:
@@ -76,6 +91,23 @@ public:
     [[nodiscard]] virtual std::string extension() const = 0;
     /// Whether this format supports concurrent reads from multiple threads
     [[nodiscard]] virtual bool is_thread_safe() const { return true; }
+    
+    /// Whether this format supports partial/slice reads without loading entire file
+    [[nodiscard]] virtual bool supports_slice_read() const { return false; }
+    
+    /// Read a single inline (Y-slice) from a 3D volume.
+    /// slice_buf must have space for nx * nz floats.
+    /// iy is the inline index (0 <= iy < ny).
+    /// Default implementation: read full volume and extract slice.
+    virtual void read_slice(const std::string& path, float* slice_buf, 
+                            const ArrayShape& shape, std::size_t iy) {
+        // Fallback: read entire volume and extract the slice
+        std::vector<float> full(shape.total());
+        read(path, full.data(), shape);
+        const std::size_t slice_elements = shape.nx * shape.nz;
+        const float* src = full.data() + iy * slice_elements;
+        std::copy(src, src + slice_elements, slice_buf);
+    }
 };
 
 /// Calculate throughput

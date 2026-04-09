@@ -12,6 +12,9 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".bin"; }
+    [[nodiscard]] bool supports_slice_read() const override { return true; }
+    void read_slice(const std::string& path, float* slice_buf,
+                    const ArrayShape& shape, std::size_t iy) override;
 };
 
 /// Binary with header (nx, nz as uint64)
@@ -96,6 +99,9 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".mmap"; }
+    [[nodiscard]] bool supports_slice_read() const override { return true; }
+    void read_slice(const std::string& path, float* slice_buf,
+                    const ArrayShape& shape, std::size_t iy) override;
 };
 
 /// Zarr format (placeholder)
@@ -183,6 +189,9 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".rsf"; }
+    [[nodiscard]] bool supports_slice_read() const override { return true; }
+    void read_slice(const std::string& path, float* slice_buf,
+                    const ArrayShape& shape, std::size_t iy) override;
 };
 
 /// ASDF format (Adaptable Seismic Data Format — HDF5-based, via pyasdf)
