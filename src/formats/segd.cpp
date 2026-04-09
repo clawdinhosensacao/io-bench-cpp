@@ -55,12 +55,12 @@ static uint16_t read_be_u16(const uint8_t* buf) {
 
 void SegDFormat::write(const std::string& path, const float* data, const ArrayShape& shape) {
     // Map the 2D/3D array as traces: each row (z-slice or yz-slice) is a trace
-    const uint16_t num_traces = static_cast<uint16_t>(shape.nz * shape.ny);
-    const uint16_t num_samples = static_cast<uint16_t>(shape.nx);
+    const auto num_traces = static_cast<uint16_t>(shape.nz * shape.ny);  // NOLINT(modernize-use-auto)
+    const auto num_samples = static_cast<uint16_t>(shape.nx);            // NOLINT(modernize-use-auto)
     const uint16_t sample_interval = 1000;  // 1ms = 1000 microseconds
 
     std::ofstream f(path, std::ios::binary);
-    if (!f) throw std::runtime_error("SEGD: cannot open output file: " + path);
+    if (!f) { throw std::runtime_error("SEGD: cannot open output file: " + path); }
 
     // Write general header
     SegDGeneralHeader gh;
@@ -78,12 +78,12 @@ void SegDFormat::write(const std::string& path, const float* data, const ArraySh
         SegDTraceHeader th;
         std::memset(&th, 0, sizeof(th));
         write_be_u32(th.trace_num, it + 1);
-        write_be_u16(th.receiver_line, static_cast<uint16_t>(it / shape.nz + 1));
-        write_be_u16(th.receiver_num, static_cast<uint16_t>(it % shape.nz + 1));
+        write_be_u16(th.receiver_line, static_cast<uint16_t>((it / shape.nz) + 1));
+        write_be_u16(th.receiver_num, static_cast<uint16_t>((it % shape.nz) + 1));
         f.write(reinterpret_cast<const char*>(&th), sizeof(th));
 
         // Write trace samples (big-endian float32)
-        const float* trace_data = data + static_cast<std::size_t>(it) * shape.nx;
+        const float* trace_data = data + (static_cast<std::size_t>(it) * shape.nx);
         for (uint16_t isamp = 0; isamp < num_samples; ++isamp) {
             // Convert to big-endian float32
             uint32_t be_val;
@@ -96,33 +96,33 @@ void SegDFormat::write(const std::string& path, const float* data, const ArraySh
 
 void SegDFormat::read(const std::string& path, float* data, const ArrayShape& shape) {
     std::ifstream f(path, std::ios::binary);
-    if (!f) throw std::runtime_error("SEGD: cannot open input file: " + path);
+    if (!f) { throw std::runtime_error("SEGD: cannot open input file: " + path); }
 
     // Read general header
     SegDGeneralHeader gh;
     f.read(reinterpret_cast<char*>(&gh), sizeof(gh));
-    if (!f) throw std::runtime_error("SEGD: failed to read general header");
+    if (!f) { throw std::runtime_error("SEGD: failed to read general header"); }
 
     const uint16_t num_traces = read_be_u16(reinterpret_cast<const uint8_t*>(&gh.num_traces));
     const uint16_t num_samples = read_be_u16(reinterpret_cast<const uint8_t*>(&gh.num_samples));
 
     // Read traces
-    for (uint16_t it = 0; it < num_traces && it < shape.nz * shape.ny; ++it) {
+    for (uint16_t it = 0; it < num_traces && it < (shape.nz * shape.ny); ++it) {
         SegDTraceHeader th;
         f.read(reinterpret_cast<char*>(&th), sizeof(th));
-        if (!f) throw std::runtime_error("SEGD: failed to read trace header");
+        if (!f) { throw std::runtime_error("SEGD: failed to read trace header"); }
 
-        float* trace_data = data + static_cast<std::size_t>(it) * shape.nx;
+        float* trace_data = data + (static_cast<std::size_t>(it) * shape.nx);
         for (uint16_t isamp = 0; isamp < num_samples && isamp < shape.nx; ++isamp) {
             uint32_t be_val;
             f.read(reinterpret_cast<char*>(&be_val), sizeof(be_val));
-            if (!f) throw std::runtime_error("SEGD: failed to read trace sample");
+            if (!f) { throw std::runtime_error("SEGD: failed to read trace sample"); }
             be_val = __builtin_bswap32(be_val);
             std::memcpy(&trace_data[isamp], &be_val, sizeof(float));
         }
         // Skip remaining samples if num_samples > shape.nx
         if (num_samples > shape.nx) {
-            f.seekg(static_cast<std::streamsize>(num_samples - shape.nx) * sizeof(float), std::ios::cur);
+            f.seekg(static_cast<std::streamsize>((num_samples - shape.nx)) * sizeof(float), std::ios::cur);
         }
     }
 }

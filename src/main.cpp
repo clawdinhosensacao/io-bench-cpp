@@ -15,29 +15,32 @@ struct GeoPreset {
     std::size_t iterations;
 };
 
-static const std::vector<GeoPreset> geo_presets = {
-    {"2d-survey-line",
-     "2D seismic survey line (typical 2D marine: 480 traces × 1501 samples)",
-     480, 1501, 1, 3},
-    {"2d-velocity-model",
-     "2D velocity model for RTM (typical: 401 × 201 grid, 10m spacing)",
-     401, 201, 1, 3},
-    {"3d-velocity-model",
-     "3D velocity model for RTM (typical: 401 × 201 × 201, ~60 MB float32)",
-     401, 201, 201, 2},
-    {"3d-large-survey",
-     "Large 3D survey volume (600 × 400 × 300, ~275 MB float32)",
-     600, 400, 300, 1},
-    {"3d-big-volume",
-     "Big 3D volume for throughput at realistic seismic scale (401 × 401 × 501, ~307 MB)",
-     401, 401, 501, 1},
-    {"shot-gather",
-     "Single shot gather (640 receivers × 4001 time samples, ~10 MB)",
-     640, 4001, 1, 5},
-    {"checkpoint-restart",
-     "RTM checkpoint/restart volume (200 × 100 × 100, ~8 MB, many iterations)",
-     200, 100, 100, 10},
-};
+static const std::vector<GeoPreset>& get_geo_presets() {
+    static const std::vector<GeoPreset> geo_presets = {
+    {.name = "2d-survey-line",
+     .description = "2D seismic survey line (typical 2D marine: 480 traces × 1501 samples)",
+     .nx = 480, .nz = 1501, .ny = 1, .iterations = 3},
+    {.name = "2d-velocity-model",
+     .description = "2D velocity model for RTM (typical: 401 × 201 grid, 10m spacing)",
+     .nx = 401, .nz = 201, .ny = 1, .iterations = 3},
+    {.name = "3d-velocity-model",
+     .description = "3D velocity model for RTM (typical: 401 × 201 × 201, ~60 MB float32)",
+     .nx = 401, .nz = 201, .ny = 201, .iterations = 2},
+    {.name = "3d-large-survey",
+     .description = "Large 3D survey volume (600 × 400 × 300, ~275 MB float32)",
+     .nx = 600, .nz = 400, .ny = 300, .iterations = 1},
+    {.name = "3d-big-volume",
+     .description = "Big 3D volume for throughput at realistic seismic scale (401 × 401 × 501, ~307 MB)",
+     .nx = 401, .nz = 401, .ny = 501, .iterations = 1},
+    {.name = "shot-gather",
+     .description = "Single shot gather (640 receivers × 4001 time samples, ~10 MB)",
+     .nx = 640, .nz = 4001, .ny = 1, .iterations = 5},
+    {.name = "checkpoint-restart",
+     .description = "RTM checkpoint/restart volume (200 × 100 × 100, ~8 MB, many iterations)",
+     .nx = 200, .nz = 100, .ny = 100, .iterations = 10},
+    };
+    return geo_presets;
+}
 
 void print_usage(const char* prog) {
     std::cout << "Usage: " << prog << " [options]\n\n"
@@ -54,7 +57,7 @@ void print_usage(const char* prog) {
               << "  --output <path>    Output markdown report path\n"
               << "  --help             Show this message\n\n"
               << "Geophysics Presets:\n";
-    for (const auto& p : geo_presets) {
+    for (const auto& p : get_geo_presets()) {
         const double mb = static_cast<double>(p.nx * p.nz * p.ny) * sizeof(float) / (1024.0 * 1024.0);
         std::cout << "  " << p.name << "\n"
                   << "    " << p.description << "\n"
@@ -65,7 +68,7 @@ void print_usage(const char* prog) {
 
 void list_presets() {
     std::cout << "Available geophysics presets:\n\n";
-    for (const auto& p : geo_presets) {
+    for (const auto& p : get_geo_presets()) {
         const double mb = static_cast<double>(p.nx * p.nz * p.ny) * sizeof(float) / (1024.0 * 1024.0);
         std::cout << "  " << p.name << "\n"
                   << "    " << p.description << "\n"
@@ -132,7 +135,7 @@ int main(int argc, char* argv[]) {
     // Apply preset if specified
     if (!preset_name.empty()) {
         bool found = false;
-        for (const auto& p : geo_presets) {
+        for (const auto& p : get_geo_presets()) {
             if (p.name == preset_name) {
                 config.nx = p.nx;
                 config.nz = p.nz;

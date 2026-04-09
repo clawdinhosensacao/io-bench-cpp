@@ -107,7 +107,7 @@ public:
         std::vector<float> full(shape.total());
         read(path, full.data(), shape);
         const std::size_t slice_elements = shape.nx * shape.nz;
-        const float* src = full.data() + iy * slice_elements;
+        const float* src = full.data() + (iy * slice_elements);
         std::copy(src, src + slice_elements, slice_buf);
     }
 };

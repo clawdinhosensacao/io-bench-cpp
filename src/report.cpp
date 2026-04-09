@@ -1,11 +1,10 @@
 #include "io_bench/report.hpp"
 #include <algorithm>
-#include <fstream>
-#include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <algorithm>
 #include <chrono>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
 
 namespace io_bench {
 
