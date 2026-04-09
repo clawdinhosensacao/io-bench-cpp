@@ -22,7 +22,7 @@ BenchmarkRunner::~BenchmarkRunner() {
     // Clean up temp files
     try {
         std::filesystem::remove_all(temp_dir_);
-    } catch (...) {
+    } catch (...) {  // NOLINT(bugprone-empty-catch)
         // Ignore cleanup errors
     }
 }
@@ -234,7 +234,7 @@ ParallelReadResult BenchmarkRunner::run_parallel_read(FormatAdapter& adapter) {
         std::vector<std::thread> threads;
         std::vector<std::string> thread_errors(num_threads);
         for (std::size_t t = 0; t < num_threads; ++t) {
-            threads.emplace_back([&, t]() {
+            threads.emplace_back([&, t]() {  // NOLINT(performance-inefficient-vector-operation)
                 try {
                     // Spin-wait for go signal
                     while (!go.load(std::memory_order_acquire)) {
@@ -388,7 +388,7 @@ SliceReadResult BenchmarkRunner::run_slice_read(FormatAdapter& adapter) {
         }
 
         // Verify slice data against source
-        const float* expected = data.data() + (shape.ny / 2) * slice_elements;
+        const float* expected = data.data() + ((shape.ny / 2) * slice_elements);
         for (std::size_t i = 0; i < slice_elements; ++i) {
             if (std::abs(expected[i] - slice_buf[i]) > 0.001f) {
                 result.error = "Slice data integrity check failed";
