@@ -14,10 +14,12 @@ struct BenchResult {
     std::string name;              ///< Format name
     bool available = false;        ///< Whether the format backend is available
     double file_size_mb = 0.0;     ///< File size in megabytes
+    double raw_data_mb = 0.0;     ///< Raw data size in megabytes (for compression ratio)
     double write_ms = 0.0;         ///< Write time in milliseconds
     double read_ms = 0.0;          ///< Read time in milliseconds
     double write_mbps = 0.0;       ///< Write throughput in MB/s
     double read_mbps = 0.0;        ///< Read throughput in MB/s
+    double compression_ratio = 0.0; ///< raw_data_mb / file_size_mb (1.0 = no compression)
     std::string error;             ///< Error message if failed
 };
 

@@ -110,6 +110,12 @@ BenchResult BenchmarkRunner::run_single(FormatAdapter& adapter) {
         result.write_mbps = throughput_mbps(result.file_size_mb, write_s);
         result.read_mbps = throughput_mbps(result.file_size_mb, read_s);
         
+        // Calculate compression ratio
+        result.raw_data_mb = shape.mb();
+        if (result.file_size_mb > 0.0) {
+            result.compression_ratio = result.raw_data_mb / result.file_size_mb;
+        }
+        
         // Verify data integrity (first iteration only)
         for (std::size_t i = 0; i < shape.total(); ++i) {
             if (std::abs(data[i] - read_buffer[i]) > 0.001f) {
