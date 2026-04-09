@@ -215,4 +215,17 @@ public:
     [[nodiscard]] std::string extension() const override { return ".sgd"; }
 };
 
+/// Direct I/O format (O_DIRECT — bypass page cache)
+class DirectIOFormat : public FormatAdapter {
+public:
+    [[nodiscard]] std::string name() const override { return "direct_io"; }
+    [[nodiscard]] bool is_available() const override;
+    void write(const std::string& path, const float* data, const ArrayShape& shape) override;
+    void read(const std::string& path, float* data, const ArrayShape& shape) override;
+    [[nodiscard]] std::string extension() const override { return ".dio"; }
+    [[nodiscard]] bool supports_slice_read() const override { return true; }
+    void read_slice(const std::string& path, float* slice_buf,
+                    const ArrayShape& shape, std::size_t iy) override;
+};
+
 } // namespace io_bench

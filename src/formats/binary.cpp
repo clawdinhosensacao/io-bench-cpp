@@ -166,4 +166,129 @@ void MmapFormat::read_slice(const std::string& path, float* slice_buf,
 #endif
 }
 
+// ============================================================================
+// Direct I/O Format (O_DIRECT — bypass page cache)
+// ============================================================================
+
+/// Align buffer to the system's logical sector size for O_DIRECT
+static std::size_t get_direct_alignment() {
+    return 4096;  // Common alignment for O_DIRECT on most Linux filesystems
+}
+
+/// Allocate aligned memory for O_DIRECT operations
+static void* alloc_aligned(std::size_t size) {
+    void* ptr = nullptr;
+    if (posix_memalign(&ptr, get_direct_alignment(), size) != 0) {
+        throw std::runtime_error("DirectIO: failed to allocate aligned memory");
+    }
+    return ptr;
+}
+
+bool DirectIOFormat::is_available() const {
+#ifdef __linux__
+    return true;
+#else
+    return false;
+#endif
+}
+
+void DirectIOFormat::write(const std::string& path, const float* data, const ArrayShape& shape) {
+#ifdef __linux__
+    const std::size_t alignment = get_direct_alignment();
+    const std::size_t raw_bytes = shape.bytes();
+    const std::size_t aligned_bytes = ((raw_bytes + alignment - 1) / alignment) * alignment;
+
+    void* buf = alloc_aligned(aligned_bytes);
+    std::memset(buf, 0, aligned_bytes);
+    std::memcpy(buf, data, raw_bytes);
+
+    int fd = ::open(path.c_str(), O_WRONLY | O_CREAT | O_DIRECT | O_TRUNC, 0644);
+    if (fd < 0) {
+        free(buf);
+        throw std::runtime_error("DirectIO: cannot open file for writing: " + path);
+    }
+
+    ssize_t written = ::write(fd, buf, aligned_bytes);
+    ::close(fd);
+    free(buf);
+
+    if (written < 0 || static_cast<std::size_t>(written) < raw_bytes) {
+        throw std::runtime_error("DirectIO: write failed for: " + path);
+    }
+
+    // Truncate to actual size (remove alignment padding)
+    ::truncate(path.c_str(), static_cast<off_t>(raw_bytes));
+#else
+    (void)path; (void)data; (void)shape;
+    throw std::runtime_error("DirectIO: not supported on this platform");
+#endif
+}
+
+void DirectIOFormat::read(const std::string& path, float* data, const ArrayShape& shape) {
+#ifdef __linux__
+    const std::size_t alignment = get_direct_alignment();
+    const std::size_t raw_bytes = shape.bytes();
+    const std::size_t aligned_bytes = ((raw_bytes + alignment - 1) / alignment) * alignment;
+
+    void* buf = alloc_aligned(aligned_bytes);
+
+    int fd = ::open(path.c_str(), O_RDONLY | O_DIRECT);
+    if (fd < 0) {
+        free(buf);
+        throw std::runtime_error("DirectIO: cannot open file for reading: " + path);
+    }
+
+    ssize_t nread = ::read(fd, buf, aligned_bytes);
+    ::close(fd);
+
+    if (nread < 0) {
+        free(buf);
+        throw std::runtime_error("DirectIO: read failed for: " + path);
+    }
+
+    std::memcpy(data, buf, raw_bytes);
+    free(buf);
+#else
+    (void)path; (void)data; (void)shape;
+    throw std::runtime_error("DirectIO: not supported on this platform");
+#endif
+}
+
+void DirectIOFormat::read_slice(const std::string& path, float* slice_buf,
+                                 const ArrayShape& shape, std::size_t iy) {
+#ifdef __linux__
+    const std::size_t alignment = get_direct_alignment();
+    const std::size_t slice_elements = shape.nx * shape.nz;
+    const std::size_t raw_bytes = slice_elements * sizeof(float);
+    const std::size_t aligned_bytes = ((raw_bytes + alignment - 1) / alignment) * alignment;
+    const std::size_t offset = iy * raw_bytes;
+
+    // Offset must be aligned for O_DIRECT
+    const std::size_t aligned_offset = (offset / alignment) * alignment;
+    const std::size_t offset_diff = offset - aligned_offset;
+
+    void* buf = alloc_aligned(aligned_bytes + alignment);
+
+    int fd = ::open(path.c_str(), O_RDONLY | O_DIRECT);
+    if (fd < 0) {
+        free(buf);
+        throw std::runtime_error("DirectIO: cannot open file for slice read: " + path);
+    }
+
+    ssize_t nread = ::pread(fd, buf, aligned_bytes + alignment, static_cast<off_t>(aligned_offset));
+    ::close(fd);
+
+    if (nread < 0) {
+        free(buf);
+        throw std::runtime_error("DirectIO: slice read failed for: " + path);
+    }
+
+    std::memcpy(slice_buf, static_cast<char*>(buf) + offset_diff, raw_bytes);
+    free(buf);
+#else
+    (void)path; (void)slice_buf; (void)shape; (void)iy;
+    throw std::runtime_error("DirectIO: not supported on this platform");
+#endif
+}
+
 } // namespace io_bench
