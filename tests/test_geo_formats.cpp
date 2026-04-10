@@ -341,9 +341,14 @@ TEST_F(GeoFormatTest, MdioNotThreadSafe) {
     EXPECT_FALSE(format.is_thread_safe());
 }
 
-TEST_F(GeoFormatTest, TensorStoreNotThreadSafe) {
+TEST_F(GeoFormatTest, TensorStoreThreadSafe) {
     io_bench::TensorStoreFormat format;
+    // Native C++ API is thread-safe; Python bridge fallback is not
+#ifdef HAVE_TENSORSTORE_CPP
+    EXPECT_TRUE(format.is_thread_safe());
+#else
     EXPECT_FALSE(format.is_thread_safe());
+#endif
 }
 
 TEST_F(GeoFormatTest, AsdfNotThreadSafe) {
