@@ -39,6 +39,7 @@ focusing on capabilities relevant to **geophysics and seismic processing** workf
 | miniseed | ❌ record-based | ✅ Steim-1/2 | ❌ | ✅ mmap | ✅ FDSN headers | ✅ real-time | ❌ | ❌ time-series | ✅ time window | ✅ Seismology std |
 | asdf | ✅ blocks | ✅ gzip/bzip2/lz4 | ❌ | ❌ | ✅ rich (HDF5) | ✅ append | ❌ | ❌ 1D traces | ✅ time window | ✅ Seismology |
 | tensorstore | ✅ chunks | ✅ zlib/gzip/zstd | ✅ multi-thread | ❌ | ✅ schema | ❌ | ✅ S3/GCS/Azure | ✅ ND arrays | ✅ slicing | Python/C++ |
+| tensorstore_cpp | ✅ chunks | ✅ zlib/gzip/zstd | ✅ multi-thread | ❌ | ✅ schema | ❌ | ✅ S3/GCS/Azure | ✅ ND arrays | ✅ slicing | C++ native |
 
 ## Key Findings for Geophysics
 
