@@ -155,4 +155,59 @@ void SegDFormat::read_trace(const std::string& path, float* trace_buf,
     }
 }
 
+void SegDFormat::write_trace(const std::string& path, const float* trace_data,
+                             const ArrayShape& shape, std::size_t trace_idx) {
+    const auto num_samples = static_cast<uint16_t>(shape.nx);
+
+    if (trace_idx == 0) {
+        // First trace: create file with general header
+        std::ofstream f(path, std::ios::binary);
+        if (!f) { throw std::runtime_error("SEGD: cannot open file for streaming write: " + path); }
+
+        SegDGeneralHeader gh;
+        std::memset(&gh, 0, sizeof(gh));
+        gh.file_id[0] = 'S'; gh.file_id[1] = 'E'; gh.file_id[2] = 'G';
+        gh.revision = 3;
+        gh.format_code = 4;  // IEEE float32
+        const auto total_traces = static_cast<uint16_t>(shape.nz * shape.ny);
+        write_be_u16(reinterpret_cast<uint8_t*>(&gh.num_traces), total_traces);
+        write_be_u16(reinterpret_cast<uint8_t*>(&gh.num_samples), num_samples);
+        write_be_u16(reinterpret_cast<uint8_t*>(&gh.sample_interval), 1000);
+        f.write(reinterpret_cast<const char*>(&gh), sizeof(gh));
+
+        // Write first trace header + data
+        SegDTraceHeader th;
+        std::memset(&th, 0, sizeof(th));
+        write_be_u32(th.trace_num, 1);
+        write_be_u16(th.receiver_line, 1);
+        write_be_u16(th.receiver_num, 1);
+        f.write(reinterpret_cast<const char*>(&th), sizeof(th));
+
+        for (uint16_t isamp = 0; isamp < num_samples; ++isamp) {
+            uint32_t be_val;
+            std::memcpy(&be_val, &trace_data[isamp], sizeof(float));
+            be_val = __builtin_bswap32(be_val);
+            f.write(reinterpret_cast<const char*>(&be_val), sizeof(be_val));
+        }
+    } else {
+        // Subsequent traces: append
+        std::ofstream f(path, std::ios::binary | std::ios::app);
+        if (!f) { throw std::runtime_error("SEGD: cannot open file for streaming append: " + path); }
+
+        SegDTraceHeader th;
+        std::memset(&th, 0, sizeof(th));
+        write_be_u32(th.trace_num, static_cast<uint32_t>(trace_idx + 1));
+        write_be_u16(th.receiver_line, static_cast<uint16_t>((trace_idx / shape.nz) + 1));
+        write_be_u16(th.receiver_num, static_cast<uint16_t>((trace_idx % shape.nz) + 1));
+        f.write(reinterpret_cast<const char*>(&th), sizeof(th));
+
+        for (uint16_t isamp = 0; isamp < num_samples; ++isamp) {
+            uint32_t be_val;
+            std::memcpy(&be_val, &trace_data[isamp], sizeof(float));
+            be_val = __builtin_bswap32(be_val);
+            f.write(reinterpret_cast<const char*>(&be_val), sizeof(be_val));
+        }
+    }
+}
+
 } // namespace io_bench

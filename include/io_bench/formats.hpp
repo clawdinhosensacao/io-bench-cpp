@@ -138,6 +138,9 @@ public:
     [[nodiscard]] bool supports_trace_read() const override { return true; }
     void read_trace(const std::string& path, float* trace_buf,
                     const ArrayShape& shape, std::size_t trace_idx) override;
+    [[nodiscard]] bool supports_stream_write() const override { return true; }
+    void write_trace(const std::string& path, const float* trace_data,
+                    const ArrayShape& shape, std::size_t trace_idx) override;
 };
 
 /// TensorStore format (placeholder)
@@ -218,6 +221,9 @@ public:
     [[nodiscard]] std::string extension() const override { return ".sgd"; }
     [[nodiscard]] bool supports_trace_read() const override { return true; }
     void read_trace(const std::string& path, float* trace_buf,
+                    const ArrayShape& shape, std::size_t trace_idx) override;
+    [[nodiscard]] bool supports_stream_write() const override { return true; }
+    void write_trace(const std::string& path, const float* trace_data,
                     const ArrayShape& shape, std::size_t trace_idx) override;
 };
 

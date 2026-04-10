@@ -134,3 +134,78 @@ TEST_F(FormatTest, BinaryHeaderFileSize) {
     
     EXPECT_EQ(expected_size, actual_size);
 }
+
+TEST_F(FormatTest, SegyStreamingWriteAndRead) {
+    io_bench::SegyFormat format;
+    ASSERT_TRUE(format.is_available());
+    ASSERT_TRUE(format.supports_stream_write());
+    ASSERT_TRUE(format.supports_trace_read());
+
+    auto path = temp_dir_ / "test_stream.segy";
+    const std::size_t num_traces = shape_.nx * shape_.ny;
+    const std::size_t samples_per_trace = shape_.nz;
+
+    // Extract trace data from the flat array (SEG-Y trace layout)
+    // Trace t at position (ix=t%nx, iy=t/nx) has z-samples at:
+    //   data[iz * ny * nx + iy * nx + ix] for iz=0..nz-1
+    auto extract_trace = [&](std::size_t t) -> std::vector<float> {
+        std::vector<float> trace(samples_per_trace);
+        const std::size_t ix = t % shape_.nx;
+        const std::size_t iy = t / shape_.nx;
+        for (std::size_t iz = 0; iz < samples_per_trace; ++iz) {
+            std::size_t idx = (iz * shape_.ny * shape_.nx) + (iy * shape_.nx) + ix;
+            trace[iz] = data_[idx];
+        }
+        return trace;
+    };
+
+    // Write traces one by one using streaming write
+    for (std::size_t t = 0; t < num_traces; ++t) {
+        auto trace = extract_trace(t);
+        format.write_trace(path.string(), trace.data(), shape_, t);
+    }
+
+    // Read back via bulk read and verify
+    std::vector<float> read_data(shape_.total());
+    format.read(path.string(), read_data.data(), shape_);
+
+    for (std::size_t i = 0; i < shape_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data_[i], read_data[i]) << "Mismatch at index " << i;
+    }
+
+    // Also test trace-by-trace read
+    for (std::size_t t = 0; t < num_traces; ++t) {
+        std::vector<float> trace_buf(samples_per_trace);
+        format.read_trace(path.string(), trace_buf.data(), shape_, t);
+        auto expected = extract_trace(t);
+        for (std::size_t iz = 0; iz < samples_per_trace; ++iz) {
+            EXPECT_FLOAT_EQ(expected[iz], trace_buf[iz]) << "Trace " << t << " sample " << iz;
+        }
+    }
+}
+
+TEST_F(FormatTest, SegDStreamingWriteAndRead) {
+    io_bench::SegDFormat format;
+    ASSERT_TRUE(format.is_available());
+    ASSERT_TRUE(format.supports_stream_write());
+    ASSERT_TRUE(format.supports_trace_read());
+
+    auto path = temp_dir_ / "test_stream.sgd";
+    // SEG-D traces are z-rows: each trace has nx samples
+    const std::size_t num_traces = shape_.nz * shape_.ny;
+    const std::size_t samples_per_trace = shape_.nx;
+
+    // Write traces one by one (SEG-D layout: trace t = data[t * nx .. (t+1)*nx])
+    for (std::size_t t = 0; t < num_traces; ++t) {
+        const float* trace_data = data_.data() + (t * samples_per_trace);
+        format.write_trace(path.string(), trace_data, shape_, t);
+    }
+
+    // Read back via bulk read and verify
+    std::vector<float> read_data(shape_.total());
+    format.read(path.string(), read_data.data(), shape_);
+
+    for (std::size_t i = 0; i < shape_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data_[i], read_data[i]) << "Mismatch at index " << i;
+    }
+}

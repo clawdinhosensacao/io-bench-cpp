@@ -218,4 +218,106 @@ void SegyFormat::read_trace(const std::string& path, float* trace_buf,
     }
 }
 
+void SegyFormat::write_trace(const std::string& path, const float* trace_data,
+                             const ArrayShape& shape, std::size_t trace_idx) {
+    if (trace_idx == 0) {
+        // First trace: create file and write global headers
+        std::ofstream out(path, std::ios::binary);
+        if (!out) {
+            throw std::runtime_error("SEG-Y: Cannot open file for streaming write: " + path);
+        }
+
+        // Write text header (3200 bytes of spaces)
+        std::vector<char> text_header(TEXT_HEADER_SIZE, ' ');
+        out.write(text_header.data(), TEXT_HEADER_SIZE);
+
+        // Write binary header (400 bytes)
+        std::vector<char> binary_header(BINARY_HEADER_SIZE, 0);
+        auto nsamples = static_cast<uint16_t>(shape.nz);
+        binary_header[22] = static_cast<char>((nsamples >> 8) & 0xFF);
+        binary_header[23] = static_cast<char>(nsamples & 0xFF);
+        uint16_t dt = 1000;
+        binary_header[16] = static_cast<char>((dt >> 8) & 0xFF);
+        binary_header[17] = static_cast<char>(dt & 0xFF);
+        binary_header[24] = 0;
+        binary_header[25] = 5;  // IEEE float
+        out.write(binary_header.data(), BINARY_HEADER_SIZE);
+
+        // Write first trace header + data
+        std::vector<char> trace_header(TRACE_HEADER_SIZE, 0);
+        auto seq = static_cast<uint32_t>(1);
+        trace_header[0] = static_cast<char>((seq >> 24) & 0xFF);
+        trace_header[1] = static_cast<char>((seq >> 16) & 0xFF);
+        trace_header[2] = static_cast<char>((seq >> 8) & 0xFF);
+        trace_header[3] = static_cast<char>(seq & 0xFF);
+        auto cdp_x = static_cast<int32_t>(0);
+        trace_header[80] = static_cast<char>((cdp_x >> 24) & 0xFF);
+        trace_header[81] = static_cast<char>((cdp_x >> 16) & 0xFF);
+        trace_header[82] = static_cast<char>((cdp_x >> 8) & 0xFF);
+        trace_header[83] = static_cast<char>(cdp_x & 0xFF);
+        auto ns = static_cast<uint16_t>(shape.nz);
+        trace_header[114] = static_cast<char>((ns >> 8) & 0xFF);
+        trace_header[115] = static_cast<char>(ns & 0xFF);
+        out.write(trace_header.data(), TRACE_HEADER_SIZE);
+
+        // Write trace samples (big-endian float32)
+        for (std::size_t iz = 0; iz < shape.nz; ++iz) {
+            float val = trace_data[iz];
+            uint32_t bits;
+            std::memcpy(&bits, &val, sizeof(float));
+            char bytes[4];
+            bytes[0] = static_cast<char>((bits >> 24) & 0xFF);
+            bytes[1] = static_cast<char>((bits >> 16) & 0xFF);
+            bytes[2] = static_cast<char>((bits >> 8) & 0xFF);
+            bytes[3] = static_cast<char>(bits & 0xFF);
+            out.write(bytes, 4);
+        }
+    } else {
+        // Subsequent traces: append to existing file
+        std::ofstream out(path, std::ios::binary | std::ios::app);
+        if (!out) {
+            throw std::runtime_error("SEG-Y: Cannot open file for streaming append: " + path);
+        }
+
+        // Write trace header
+        std::vector<char> trace_header(TRACE_HEADER_SIZE, 0);
+        auto seq = static_cast<uint32_t>(trace_idx + 1);
+        trace_header[0] = static_cast<char>((seq >> 24) & 0xFF);
+        trace_header[1] = static_cast<char>((seq >> 16) & 0xFF);
+        trace_header[2] = static_cast<char>((seq >> 8) & 0xFF);
+        trace_header[3] = static_cast<char>(seq & 0xFF);
+
+        auto cdp_x = static_cast<int32_t>((trace_idx % shape.nx) * 100);
+        trace_header[80] = static_cast<char>((cdp_x >> 24) & 0xFF);
+        trace_header[81] = static_cast<char>((cdp_x >> 16) & 0xFF);
+        trace_header[82] = static_cast<char>((cdp_x >> 8) & 0xFF);
+        trace_header[83] = static_cast<char>(cdp_x & 0xFF);
+
+        auto cdp_y = static_cast<int32_t>((trace_idx / shape.nx) * 100);
+        trace_header[84] = static_cast<char>((cdp_y >> 24) & 0xFF);
+        trace_header[85] = static_cast<char>((cdp_y >> 16) & 0xFF);
+        trace_header[86] = static_cast<char>((cdp_y >> 8) & 0xFF);
+        trace_header[87] = static_cast<char>(cdp_y & 0xFF);
+
+        auto ns = static_cast<uint16_t>(shape.nz);
+        trace_header[114] = static_cast<char>((ns >> 8) & 0xFF);
+        trace_header[115] = static_cast<char>(ns & 0xFF);
+
+        out.write(trace_header.data(), TRACE_HEADER_SIZE);
+
+        // Write trace samples (big-endian float32)
+        for (std::size_t iz = 0; iz < shape.nz; ++iz) {
+            float val = trace_data[iz];
+            uint32_t bits;
+            std::memcpy(&bits, &val, sizeof(float));
+            char bytes[4];
+            bytes[0] = static_cast<char>((bits >> 24) & 0xFF);
+            bytes[1] = static_cast<char>((bits >> 16) & 0xFF);
+            bytes[2] = static_cast<char>((bits >> 8) & 0xFF);
+            bytes[3] = static_cast<char>(bits & 0xFF);
+            out.write(bytes, 4);
+        }
+    }
+}
+
 } // namespace io_bench
