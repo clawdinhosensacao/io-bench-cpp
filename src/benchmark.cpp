@@ -2,12 +2,9 @@
 #include "io_bench/formats.hpp"
 #include <random>
 #include <filesystem>
-#include <sstream>
-#include <iomanip>
 #include <utility>
 #include <thread>
 #include <atomic>
-#include <barrier>
 
 namespace io_bench {
 
