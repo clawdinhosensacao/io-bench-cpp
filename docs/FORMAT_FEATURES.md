@@ -95,8 +95,11 @@ focusing on capabilities relevant to **geophysics and seismic processing** workf
 7. **Trace Read Benchmark** (`--trace-read`): Sequential + random trace access, measures per-trace read performance
 8. **Checkpoint/Restart Benchmark** (`--checkpoint`): Write-then-read-back with integrity verification
 
+### ✅ High Impact (Complete)
+9. **TensorStore C++ Native API**: Replace Python bridge with native C++ — ~2900x read speedup (1 MB/s → 2905 MB/s), 229 MB/s write
+
 ### 🔲 Future (Not Yet Implemented)
 9. **Cloud I/O Benchmark**: S3/GCS read performance (mock or real)
 10. **Compression Level Sweep**: Same format, different compression levels
 11. **Memory Usage Tracking**: Peak RSS during read/write operations
-12. **TensorStore C++ Native API**: Replace Python bridge with C++ FetchContent integration
+12. **TensorStore C++ Native API**: ✅ DONE — native C++ via FetchContent, ~2905 MB/s read, 229 MB/s write
