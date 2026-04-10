@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <cstring>
 #include <optional>
 
 namespace io_bench {
@@ -20,6 +21,8 @@ struct BenchResult {
     double write_mbps = 0.0;       ///< Write throughput in MB/s
     double read_mbps = 0.0;        ///< Read throughput in MB/s
     double compression_ratio = 0.0; ///< raw_data_mb / file_size_mb (1.0 = no compression)
+    double peak_write_rss_mb = 0.0; ///< Peak RSS during write (MB)
+    double peak_read_rss_mb = 0.0;  ///< Peak RSS during read (MB)
     std::string error;             ///< Error message if failed
 };
 
@@ -224,6 +227,26 @@ inline double throughput_mbps(double size_mb, double seconds) {
     if (seconds <= 0.0) { return 0.0;
 }
     return size_mb / seconds;
+}
+
+/// Get current process RSS in MB (from /proc/self/status on Linux)
+inline double get_rss_mb() {
+#ifdef __linux__
+    FILE* f = fopen("/proc/self/status", "r");
+    if (!f) { return 0.0; }
+    char line[256];
+    double rss_kb = 0.0;
+    while (fgets(line, sizeof(line), f)) {
+        if (strncmp(line, "VmRSS:", 6) == 0) {
+            sscanf(line + 6, "%lf", &rss_kb);
+            break;
+        }
+    }
+    fclose(f);
+    return rss_kb / 1024.0;  // KB to MB
+#else
+    return 0.0;
+#endif
 }
 
 } // namespace io_bench

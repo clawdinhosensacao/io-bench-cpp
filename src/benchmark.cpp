@@ -73,11 +73,14 @@ BenchResult BenchmarkRunner::run_single(FormatAdapter& adapter) {
         
         for (std::size_t i = 0; i < config_.iterations; ++i) {
             // Write
+            double rss_before_write = get_rss_mb();
             Timer write_timer;
             write_timer.start();
             adapter.write(path_str, data.data(), shape);
             write_timer.stop();
+            double rss_after_write = get_rss_mb();
             total_write_ms += write_timer.elapsed_ms();
+            result.peak_write_rss_mb = std::max(result.peak_write_rss_mb, rss_after_write);
             
             // Get file size after write (handles both files and directories)
             if (std::filesystem::is_directory(file_path)) {
@@ -93,11 +96,14 @@ BenchResult BenchmarkRunner::run_single(FormatAdapter& adapter) {
             }
             
             // Read
+            double rss_before_read = get_rss_mb();
             Timer read_timer;
             read_timer.start();
             adapter.read(path_str, read_buffer.data(), shape);
             read_timer.stop();
+            double rss_after_read = get_rss_mb();
             total_read_ms += read_timer.elapsed_ms();
+            result.peak_read_rss_mb = std::max(result.peak_read_rss_mb, rss_after_read);
         }
         
         // Average times

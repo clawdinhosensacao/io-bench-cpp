@@ -26,8 +26,8 @@ void write_report(const std::string& path, const std::string& content) {
 
 void print_results(const std::vector<BenchResult>& results) {
     std::cout << "\n";
-    std::cout << "| Format | Status | Size (MB) | Ratio | Write (ms) | Read (ms) | Write MB/s | Read MB/s |\n";
-    std::cout << "|--------|--------|-----------|-------|------------|-----------|------------|----------|\n";
+    std::cout << "| Format | Status | Size (MB) | Ratio | Write (ms) | Read (ms) | Write MB/s | Read MB/s | Peak RSS (MB) |\n";
+    std::cout << "|--------|--------|-----------|-------|------------|-----------|------------|-----------|---------------|\n";
     
     for (const auto& r : results) {
         std::cout << "| " << std::setw(12) << std::left << r.name << " | ";
@@ -39,9 +39,10 @@ void print_results(const std::vector<BenchResult>& results) {
             std::cout << std::setprecision(2) << r.write_ms << " | ";
             std::cout << r.read_ms << " | ";
             std::cout << std::setprecision(1) << r.write_mbps << " | ";
-            std::cout << r.read_mbps << " |";
+            std::cout << r.read_mbps << " | ";
+            std::cout << std::setprecision(1) << std::max(r.peak_write_rss_mb, r.peak_read_rss_mb) << " |";
         } else {
-            std::cout << " - | - | - | - | - | - |";
+            std::cout << " - | - | - | - | - | - | - |";
         }
         std::cout << "\n";
     }
@@ -68,24 +69,25 @@ std::string generate_markdown_report(const std::vector<BenchResult>& results,
     ss << "**Available formats:** " << available << "/" << results.size() << "\n\n";
     
     ss << "## Results\n\n";
-    ss << "| Format | Status | Size (MB) | Ratio | Write (ms) | Read (ms) | Write MB/s | Read MB/s | Notes |\n";
-    ss << "|--------|--------|-----------|-------|------------|-----------|------------|-----------|-------|\n";
+    ss << "| Format | Status | Size (MB) | Ratio | Write (ms) | Read (ms) | Write MB/s | Read MB/s | Peak RSS (MB) | Notes |\n";
+    ss << "|--------|--------|-----------|-------|------------|-----------|------------|-----------|---------------|-------|\n";
     
     for (const auto& r : results) {
         ss << "| " << r.name << " | ";
         ss << (r.available ? "✅" : "❌") << " | ";
         
         if (!r.available) {
-            ss << "n/a | n/a | n/a | n/a | n/a | n/a | not compiled |";
+            ss << "n/a | n/a | n/a | n/a | n/a | n/a | n/a | not compiled |";
         } else if (!r.error.empty()) {
-            ss << " - | - | - | - | - | - | " << r.error << " |";
+            ss << " - | - | - | - | - | - | - | " << r.error << " |";
         } else {
             ss << std::fixed << std::setprecision(3) << r.file_size_mb << " | ";
             ss << std::setprecision(2) << r.compression_ratio << ":1 | ";
             ss << std::setprecision(2) << r.write_ms << " | ";
             ss << r.read_ms << " | ";
             ss << std::setprecision(1) << r.write_mbps << " | ";
-            ss << r.read_mbps << " | - |";
+            ss << r.read_mbps << " | ";
+            ss << std::setprecision(1) << std::max(r.peak_write_rss_mb, r.peak_read_rss_mb) << " | - |";
         }
         ss << "\n";
     }
