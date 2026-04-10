@@ -143,17 +143,17 @@ public:
                     const ArrayShape& shape, std::size_t trace_idx) override;
 };
 
-/// TensorStore format (placeholder)
+/// TensorStore format (C++ native when HAVE_TENSORSTORE_CPP, Python bridge fallback)
 class TensorStoreFormat : public FormatAdapter {
 public:
-    [[nodiscard]] std::string name() const override { return "tensorstore"; }
+    [[nodiscard]] std::string name() const override;
     [[nodiscard]] bool is_available() const override;
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".tstore"; }
-    [[nodiscard]] bool is_thread_safe() const override { return false; }
+    [[nodiscard]] bool is_thread_safe() const override { return true; }
+    [[nodiscard]] bool supports_slice_read() const override { return true; }
 };
-
 /// MDIO format (placeholder)
 class MdioFormat : public FormatAdapter {
 public:

@@ -1,5 +1,5 @@
 CXX ?= g++
-CXXFLAGS = -O3 -std=c++20 -Wall -Wextra -Wpedantic -I include
+CXXFLAGS = -O3 -std=c++20 -Wall -Wextra -Wpedantic -I include -I /data/.local/include
 
 # Third-party directories
 JSON_DIR = third_party/json
@@ -37,7 +37,7 @@ SRCS = src/benchmark.cpp src/report.cpp src/formats.cpp \
        src/formats/hdf5.cpp src/formats/netcdf.cpp src/formats/tiledb.cpp \
        src/formats/adios2.cpp \
        src/formats/zarr.cpp src/formats/segy.cpp src/formats/duckdb.cpp \
-       src/formats/parquet.cpp src/formats/tensorstore.cpp \
+       src/formats/parquet.cpp src/formats/tensorstore_native.cpp \
        src/formats/mdio.cpp src/formats/miniseed.cpp \
        src/formats/rsf.cpp src/formats/asdf.cpp src/formats/segd.cpp \
        third_party/cnpy/cnpy.cpp
@@ -105,4 +105,23 @@ PARQUET_EXISTS := $(shell test -f $(HDF5_PREFIX)/include/arrow/api.h && echo yes
 ifeq ($(PARQUET_EXISTS),yes)
 CXXFLAGS += -DHAVE_PARQUET -I$(HDF5_PREFIX)/include
 LDFLAGS += -L$(HDF5_PREFIX)/lib -larrow -lparquet -Wl,-rpath,$(HDF5_PREFIX)/lib -Wl,-rpath-link,$(HDF5_PREFIX)/lib
+endif
+
+# TensorStore C++ native API support
+TENSORSTORE_CPP_PREFIX := /data/.local
+TENSORSTORE_CPP_EXISTS := $(shell test -f $(TENSORSTORE_CPP_PREFIX)/include/tensorstore/tensorstore.h && echo yes)
+ifeq ($(TENSORSTORE_CPP_EXISTS),yes)
+CXXFLAGS += -DHAVE_TENSORSTORE_CPP -I$(TENSORSTORE_CPP_PREFIX)/include
+
+# TensorStore requires --whole-archive for "alwayslink" libraries (driver auto-registration)
+# and regular linking for the rest. Group all libs to resolve circular dependencies.
+TENSORSTORE_ALWAYSLINK_LIBS := $(wildcard $(TENSORSTORE_CPP_PREFIX)/lib/libtensorstore*alwayslink*.a)
+TENSORSTORE_OTHER_LIBS := $(filter-out %alwayslink%.a,$(wildcard $(TENSORSTORE_CPP_PREFIX)/lib/lib*.a))
+
+TENSORSTORE_LINK := -Wl,--whole-archive $(TENSORSTORE_ALWAYSLINK_LIBS) -Wl,--no-whole-archive \
+    -Wl,--start-group $(TENSORSTORE_OTHER_LIBS) -Wl,--end-group \
+    -L$(HDF5_PREFIX)/lib -lcurl -lz -lpthread -ldl -lrt \
+    -Wl,-rpath,$(HDF5_PREFIX)/lib
+
+LDFLAGS += $(TENSORSTORE_LINK)
 endif
