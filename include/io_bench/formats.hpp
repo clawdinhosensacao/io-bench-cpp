@@ -153,6 +153,10 @@ public:
     [[nodiscard]] std::string extension() const override { return ".tstore"; }
     [[nodiscard]] bool is_thread_safe() const override { return true; }
     [[nodiscard]] bool supports_slice_read() const override { return true; }
+    [[nodiscard]] bool supports_compression_sweep() const override { return true; }
+    [[nodiscard]] std::string compressor_name() const override;
+    void write_compressed(const std::string& path, const float* data,
+                           const ArrayShape& shape, int level) override;
 };
 /// MDIO format (placeholder)
 class MdioFormat : public FormatAdapter {

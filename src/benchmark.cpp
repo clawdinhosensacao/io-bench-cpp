@@ -663,4 +663,101 @@ std::vector<CheckpointResult> BenchmarkRunner::run_checkpoint_all() {
     return results;
 }
 
+CompressionSweepResult BenchmarkRunner::run_compression_sweep(const std::string& format_name) {
+    CompressionSweepResult result;
+    result.name = format_name;
+
+    // Find the adapter
+    FormatAdapter* adapter = nullptr;
+    for (auto& a : adapters_) {
+        if (a->name() == format_name) {
+            adapter = a.get();
+            break;
+        }
+    }
+
+    if (!adapter) {
+        result.error = "Format not found: " + format_name;
+        return result;
+    }
+
+    if (!adapter->is_available()) {
+        result.available = false;
+        return result;
+    }
+    result.available = true;
+
+    if (!adapter->supports_compression_sweep()) {
+        result.error = "Format does not support compression sweep";
+        return result;
+    }
+
+    result.compressor = adapter->compressor_name();
+    const ArrayShape shape{config_.nx, config_.nz, config_.ny};
+    result.raw_data_mb = shape.mb();
+
+    // Generate data once
+    auto data = generate_data(shape);
+
+    // Test compression levels 0-9
+    for (int level = 0; level <= 9; ++level) {
+        CompressionLevelResult lvl;
+        lvl.level = level;
+
+        try {
+            auto file_path = temp_dir_ / (adapter->name() + "_c" + std::to_string(level) + adapter->extension());
+
+            // Write with compression level
+            Timer write_timer;
+            write_timer.start();
+            adapter->write_compressed(file_path.string(), data.data(), shape, level);
+            write_timer.stop();
+            lvl.write_ms = write_timer.elapsed_ms();
+            lvl.write_mbps = throughput_mbps(shape.mb(), write_timer.elapsed_s());
+
+            // File size
+            if (std::filesystem::is_directory(file_path)) {
+                std::uintmax_t dir_size = 0;
+                for (const auto& entry : std::filesystem::recursive_directory_iterator(file_path)) {
+                    if (entry.is_regular_file()) { dir_size += entry.file_size(); }
+                }
+                lvl.file_size_mb = static_cast<double>(dir_size) / (1024.0 * 1024.0);
+            } else {
+                lvl.file_size_mb = static_cast<double>(std::filesystem::file_size(file_path)) / (1024.0 * 1024.0);
+            }
+            lvl.compression_ratio = (lvl.file_size_mb > 0.0) ? shape.mb() / lvl.file_size_mb : 0.0;
+
+            // Read back
+            std::vector<float> read_data(shape.total());
+            Timer read_timer;
+            read_timer.start();
+            adapter->read(file_path.string(), read_data.data(), shape);
+            read_timer.stop();
+            lvl.read_ms = read_timer.elapsed_ms();
+            lvl.read_mbps = throughput_mbps(shape.mb(), read_timer.elapsed_s());
+
+            // Cleanup
+            std::filesystem::remove_all(file_path);
+
+        } catch (const std::exception& e) {
+            result.error = "Level " + std::to_string(level) + ": " + e.what();
+            break;
+        }
+
+        result.levels.push_back(lvl);
+    }
+
+    return result;
+}
+
+std::vector<CompressionSweepResult> BenchmarkRunner::run_compression_sweep_all() {
+    std::vector<CompressionSweepResult> results;
+    for (auto& adapter : adapters_) {
+        if (adapter->supports_compression_sweep() && adapter->is_available()) {
+            results.push_back(run_compression_sweep(adapter->name()));
+        }
+    }
+    return results;
+}
+
 } // namespace io_bench

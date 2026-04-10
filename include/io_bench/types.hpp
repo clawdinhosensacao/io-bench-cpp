@@ -128,6 +128,27 @@ struct CheckpointResult {
     std::string error;
 };
 
+/// Single data point in a compression level sweep
+struct CompressionLevelResult {
+    int level = 0;                     ///< Compression level (0=none, 1-9=fastest..best)
+    double file_size_mb = 0.0;         ///< Compressed file size (MB)
+    double compression_ratio = 0.0;    ///< raw_data_mb / file_size_mb
+    double write_ms = 0.0;             ///< Write time (ms)
+    double read_ms = 0.0;             ///< Read time (ms)
+    double write_mbps = 0.0;          ///< Write throughput (MB/s)
+    double read_mbps = 0.0;          ///< Read throughput (MB/s)
+};
+
+/// Result of a compression level sweep benchmark
+struct CompressionSweepResult {
+    std::string name;                   ///< Format name
+    std::string compressor;             ///< Compressor name (e.g. "blosc-lz4", "gzip")
+    bool available = false;
+    double raw_data_mb = 0.0;          ///< Uncompressed data size (MB)
+    std::vector<CompressionLevelResult> levels;  ///< Results per compression level
+    std::string error;
+};
+
 /// Format adapter interface
 class FormatAdapter {
 public:
@@ -182,6 +203,20 @@ public:
     /// Default: not supported — will fall back to bulk write in benchmark.
     virtual void write_trace(const std::string& /*path*/, const float* /*trace_buf*/,
                             const ArrayShape& /*shape*/, std::size_t /*trace_idx*/) {}
+
+    /// Whether this format supports compression level sweep
+    [[nodiscard]] virtual bool supports_compression_sweep() const { return false; }
+
+    /// Get the compressor name for this format (for display in sweep results)
+    [[nodiscard]] virtual std::string compressor_name() const { return ""; }
+
+    /// Write with a specific compression level (0 = no compression, 1-9 = increasing)
+    /// Default: delegates to write() (no compression control)
+    virtual void write_compressed(const std::string& path, const float* data,
+                                   const ArrayShape& shape, int level) {
+        (void)level;
+        write(path, data, shape);
+    }
 };
 
 /// Calculate throughput

@@ -55,6 +55,7 @@ void print_usage(const char* prog) {
               << "  --stream-write     Run streaming write benchmark (append-only trace writes)\n"
               << "  --checkpoint       Run checkpoint/restart benchmark (write-then-read with integrity check)\n"
               << "  --big-volume       Shortcut for --preset 3d-big-volume (401×401×501, ~307 MB)\n"
+              << "  --compression-sweep Run compression level sweep (levels 0-9)\n"
               << "  --preset <name>    Use geophysics preset (overrides nx/nz/ny/iterations)\n"
               << "  --list-presets     List available geophysics presets\n"
               << "  --output <path>    Output markdown report path\n"
@@ -89,6 +90,7 @@ int main(int argc, char* argv[]) {
     bool trace_read = false;
     bool stream_write = false;
     bool checkpoint = false;
+    bool compression_sweep = false;
     
     // Parse arguments
     for (int i = 1; i < argc; ++i) {
@@ -125,6 +127,8 @@ int main(int argc, char* argv[]) {
             stream_write = true;
         } else if (arg == "--checkpoint") {
             checkpoint = true;
+        } else if (arg == "--compression-sweep") {
+            compression_sweep = true;
         } else if (arg == "--big-volume") {
             preset_name = "3d-big-volume";
         } else if (arg == "--preset") {
@@ -412,6 +416,54 @@ int main(int argc, char* argv[]) {
         }
 
         std::cout << "\n  ✓ = data integrity verified (read-back matches written data)\n";
+    }
+
+    // Compression level sweep benchmark
+    if (compression_sweep) {
+        std::cout << "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        std::cout << "Compression Level Sweep (" << config.nx << "×" << config.nz;
+        if (config.ny > 1) { std::cout << "×" << config.ny; }
+        std::cout << ", " << std::fixed << std::setprecision(1)
+                  << io_bench::ArrayShape{config.nx, config.nz, config.ny}.mb() << " MB raw)\n";
+        std::cout << "Testing compression levels 0 (none) through 9 (best)\n";
+        std::cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+
+        auto sweep_results = runner.run_compression_sweep_all();
+
+        for (const auto& sr : sweep_results) {
+            if (!sr.available) {
+                std::cout << std::left << std::setw(18) << sr.name << "  N/A\n";
+                continue;
+            }
+            if (!sr.error.empty()) {
+                std::cout << std::left << std::setw(18) << sr.name
+                          << "  ERROR: " << sr.error << "\n";
+                continue;
+            }
+
+            std::cout << sr.name << " (" << sr.compressor << ")\n";
+            std::cout << std::left << std::setw(8) << "Level"
+                      << std::right << std::setw(12) << "Size MB"
+                      << std::setw(12) << "Ratio"
+                      << std::setw(12) << "Write MB/s"
+                      << std::setw(12) << "Read MB/s"
+                      << "\n";
+            std::cout << std::string(56, '-') << "\n";
+
+            for (const auto& lvl : sr.levels) {
+                std::cout << std::left << std::setw(8) << lvl.level
+                          << std::right << std::setw(12) << std::fixed << std::setprecision(3) << lvl.file_size_mb
+                          << std::setw(12) << std::setprecision(2) << lvl.compression_ratio << ":1"
+                          << std::setw(12) << std::setprecision(1) << lvl.write_mbps
+                          << std::setw(12) << std::setprecision(1) << lvl.read_mbps
+                          << "\n";
+            }
+            std::cout << "\n";
+        }
+
+        if (sweep_results.empty()) {
+            std::cout << "No formats with compression support are available.\n";
+        }
     }
 
     // Write report if requested

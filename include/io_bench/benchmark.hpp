@@ -66,6 +66,12 @@ public:
     /// Run checkpoint/restart benchmark for a single format
     [[nodiscard]] CheckpointResult run_checkpoint(FormatAdapter& adapter);
     
+    /// Run compression level sweep for all formats that support it
+    [[nodiscard]] std::vector<CompressionSweepResult> run_compression_sweep_all();
+
+    /// Run compression level sweep for a single format
+    [[nodiscard]] CompressionSweepResult run_compression_sweep(const std::string& format_name);
+    
     /// Generate test data
     [[nodiscard]] static std::vector<float> generate_data(const ArrayShape& shape, unsigned int seed = 0);
     

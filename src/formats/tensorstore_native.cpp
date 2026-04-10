@@ -8,6 +8,7 @@
 #include <tensorstore/index_space.h>
 #include <tensorstore/util/result.h>
 #include <tensorstore/util/status.h>
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <cstdio>
@@ -101,6 +102,68 @@ void TensorStoreFormat::read(const std::string& path, float* data, const ArraySh
     // Copy data to output buffer
     const auto& array = *read_result;
     std::memcpy(data, array.byte_strided_origin_pointer().get(), shape.bytes());
+}
+
+std::string TensorStoreFormat::compressor_name() const {
+    return "blosc-lz4";
+}
+
+void TensorStoreFormat::write_compressed(const std::string& path, const float* data,
+                                           const ArrayShape& shape, int level) {
+    // Remove existing directory if present
+    if (std::filesystem::exists(path)) {
+        std::filesystem::remove_all(path);
+    }
+
+    // Build compressor spec: level 0 = no compression, 1-9 = blosc with clevel
+    nlohmann::json compressor_spec;
+    if (level == 0) {
+        compressor_spec = nullptr;  // No compression
+    } else {
+        compressor_spec = {
+            {"id", "blosc"},
+            {"cname", "lz4"},
+            {"clevel", level},
+            {"shuffle", -1},  // auto shuffle
+        };
+    }
+
+    auto open_result = tensorstore::Open({
+        {"driver", "zarr"},
+        {"kvstore", {{"driver", "file"}, {"path", path}}},
+        {"metadata", {
+            {"dtype", "<f4"},
+            {"shape", {static_cast<tensorstore::Index>(shape.ny),
+                       static_cast<tensorstore::Index>(shape.nz),
+                       static_cast<tensorstore::Index>(shape.nx)}},
+            {"chunks", {static_cast<tensorstore::Index>(std::min(shape.ny, std::size_t{64})),
+                        static_cast<tensorstore::Index>(std::min(shape.nz, std::size_t{64})),
+                        static_cast<tensorstore::Index>(std::min(shape.nx, std::size_t{64}))}},
+            {"order", "C"},
+            {"compressor", compressor_spec},
+        }},
+        {"create", true},
+        {"delete_existing", true},
+    }).result();
+
+    if (!open_result.ok()) {
+        throw std::runtime_error("TensorStore native: compressed open for write failed: " +
+                                  open_result.status().ToString());
+    }
+
+    auto store = *open_result;
+    auto array = tensorstore::AllocateArray<float>(
+        {static_cast<tensorstore::Index>(shape.ny),
+         static_cast<tensorstore::Index>(shape.nz),
+         static_cast<tensorstore::Index>(shape.nx)},
+        tensorstore::c_order, tensorstore::value_init);
+    std::memcpy(array.data(), data, shape.bytes());
+
+    auto write_result = tensorstore::Write(array, store).result();
+    if (!write_result.ok()) {
+        throw std::runtime_error("TensorStore native: compressed write failed: " +
+                                  write_result.status().ToString());
+    }
 }
 
 } // namespace io_bench
@@ -225,6 +288,57 @@ void TensorStoreFormat::read(const std::string& path, float* data, const ArraySh
 
     std::remove(tmp_bin.c_str());
     std::remove(script_path.c_str());
+}
+
+std::string TensorStoreFormat::compressor_name() const {
+    return "blosc-lz4";
+}
+
+void TensorStoreFormat::write_compressed(const std::string& path, const float* data,
+                                           const ArrayShape& shape, int level) {
+    // Python bridge: write with blosc compression level
+    const std::string tmp_bin = path + ".tmp_bin";
+
+    {
+        std::ofstream f(tmp_bin, std::ios::binary);
+        if (!f) { throw std::runtime_error("TensorStore: cannot write temp binary"); }
+        f.write(reinterpret_cast<const char*>(data), shape.bytes());
+    }
+
+    std::ostringstream script;
+    script << "import tensorstore as ts\n"
+           << "import numpy as np\n"
+           << "import sys\n"
+           << "tmp_bin = sys.argv[1]\n"
+           << "out_path = sys.argv[2]\n"
+           << "level = int(sys.argv[3])\n"
+           << "ny, nz, nx = " << shape.ny << ", " << shape.nz << ", " << shape.nx << "\n"
+           << "data = np.fromfile(tmp_bin, dtype=np.float32).reshape(ny, nz, nx)\n"
+           << "compressor = None if level == 0 else {'id': 'blosc', 'cname': 'lz4', 'clevel': level, 'shuffle': -1}\n"
+           << "store = ts.open({\n"
+           << "    'driver': 'zarr',\n"
+           << "    'kvstore': {'driver': 'file', 'path': out_path},\n"
+           << "    'metadata': {\n"
+           << "        'dtype': '<f4',\n"
+           << "        'shape': [ny, nz, nx],\n"
+           << "        'chunks': [min(ny, 64), min(nz, 64), min(nx, 64)],\n"
+           << "        'compressor': compressor,\n"
+           << "    },\n"
+           << "    'create': True,\n"
+           << "    'delete_existing': True,\n"
+           << "}).result()\n"
+           << "store[:] = data\n";
+
+    std::string script_path = write_temp_script(script.str());
+    std::string cmd = "python3 " + script_path + " " + tmp_bin + " " + path + " " + std::to_string(level) + " 2>&1";
+    int ret = std::system(cmd.c_str());  // NOLINT(bugprone-command-processor)
+
+    std::remove(tmp_bin.c_str());
+    std::remove(script_path.c_str());
+
+    if (ret != 0) {
+        throw std::runtime_error("TensorStore compressed write failed (Python subprocess)");
+    }
 }
 
 } // namespace io_bench
