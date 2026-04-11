@@ -93,6 +93,45 @@ TEST_F(BenchmarkTest, JsonFormatIsAvailable) {
     EXPECT_TRUE(format.is_available());
 }
 
+TEST_F(BenchmarkTest, AllNativeFormatsAreAvailable) {
+    // Native C++ formats that should always be available
+    EXPECT_TRUE(io_bench::BinaryFormat().is_available());
+    EXPECT_TRUE(io_bench::BinaryHeaderFormat().is_available());
+    EXPECT_TRUE(io_bench::MmapFormat().is_available());
+    EXPECT_TRUE(io_bench::NpyFormat().is_available());
+    EXPECT_TRUE(io_bench::JsonFormat().is_available());
+    EXPECT_TRUE(io_bench::RsfFormat().is_available());
+    EXPECT_TRUE(io_bench::SegDFormat().is_available());
+    EXPECT_TRUE(io_bench::SegyFormat().is_available());
+    EXPECT_TRUE(io_bench::TileDBFormat().is_available());
+    EXPECT_TRUE(io_bench::DuckDBFormat().is_available());
+    EXPECT_TRUE(io_bench::TensorStoreFormat().is_available());
+    EXPECT_TRUE(io_bench::DirectIOFormat().is_available());
+}
+
+TEST_F(BenchmarkTest, AllFormatsHaveConsistentNaming) {
+    // Every format should have a non-empty name and extension
+    std::vector<std::unique_ptr<io_bench::FormatAdapter>> adapters;
+    adapters.push_back(std::make_unique<io_bench::BinaryFormat>());
+    adapters.push_back(std::make_unique<io_bench::BinaryHeaderFormat>());
+    adapters.push_back(std::make_unique<io_bench::MmapFormat>());
+    adapters.push_back(std::make_unique<io_bench::NpyFormat>());
+    adapters.push_back(std::make_unique<io_bench::JsonFormat>());
+    adapters.push_back(std::make_unique<io_bench::RsfFormat>());
+    adapters.push_back(std::make_unique<io_bench::SegDFormat>());
+    adapters.push_back(std::make_unique<io_bench::SegyFormat>());
+    adapters.push_back(std::make_unique<io_bench::TileDBFormat>());
+    adapters.push_back(std::make_unique<io_bench::DuckDBFormat>());
+    adapters.push_back(std::make_unique<io_bench::TensorStoreFormat>());
+    adapters.push_back(std::make_unique<io_bench::DirectIOFormat>());
+
+    for (const auto& adapter : adapters) {
+        EXPECT_FALSE(adapter->name().empty()) << "Format has empty name";
+        EXPECT_FALSE(adapter->extension().empty()) << adapter->name() << " has empty extension";
+        EXPECT_EQ(adapter->extension()[0], '.') << adapter->name() << " extension doesn't start with '.'";
+    }
+}
+
 TEST_F(BenchmarkTest, BigVolumeShapeIsApprox300MB) {
     // 3d-big-volume preset: 401 × 401 × 501
     io_bench::ArrayShape big_shape{401, 401, 501};
