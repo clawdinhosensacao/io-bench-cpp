@@ -243,3 +243,37 @@ TEST_F(BenchmarkTest, FileSizeMbDirectory) {
 
     std::filesystem::remove_all(dir);
 }
+
+TEST_F(BenchmarkTest, BinaryFormatWriteReadRoundTrip) {
+    io_bench::BinaryFormat format;
+    io_bench::ArrayShape shape{8, 6, 3};  // 3D: 8×6×3
+    auto data = io_bench::BenchmarkRunner::generate_data(shape, 42);
+    std::vector<float> read_buf(shape.total(), 0.0f);
+
+    auto path = std::filesystem::temp_directory_path() / "roundtrip_test.bin";
+    format.write(path.string(), data.data(), shape);
+    format.read(path.string(), read_buf.data(), shape);
+
+    for (std::size_t i = 0; i < shape.total(); ++i) {
+        EXPECT_FLOAT_EQ(data[i], read_buf[i]) << "Mismatch at index " << i;
+    }
+
+    std::filesystem::remove(path);
+}
+
+TEST_F(BenchmarkTest, MmapFormatWriteReadRoundTrip) {
+    io_bench::MmapFormat format;
+    io_bench::ArrayShape shape{10, 8};  // 2D
+    auto data = io_bench::BenchmarkRunner::generate_data(shape, 123);
+    std::vector<float> read_buf(shape.total(), 0.0f);
+
+    auto path = std::filesystem::temp_directory_path() / "roundtrip_mmap.bin";
+    format.write(path.string(), data.data(), shape);
+    format.read(path.string(), read_buf.data(), shape);
+
+    for (std::size_t i = 0; i < shape.total(); ++i) {
+        EXPECT_FLOAT_EQ(data[i], read_buf[i]) << "Mismatch at index " << i;
+    }
+
+    std::filesystem::remove(path);
+}
