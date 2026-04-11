@@ -25,6 +25,7 @@ focusing on capabilities relevant to **geophysics and seismic processing** workf
 | binary_f32 | ❌ | ❌ | ❌ | ✅ mmap | ❌ | ❌ | ❌ | ❌ | ❌ | Low |
 | binary_header | ❌ | ❌ | ❌ | ✅ mmap | ✅ minimal | ❌ | ❌ | ❌ | ❌ | Low |
 | mmap | ❌ | ❌ | ✅ OS-level | ✅ native | ❌ | ❌ | ❌ | ❌ | ✅ offset | Low |
+| direct_io | ❌ | ❌ | ❌ | ✅ O_DIRECT | ❌ | ❌ | ❌ | ❌ | ✅ offset | Low |
 | rsf | ❌ | ❌ | ❌ | ✅ mmap | ✅ text header | ❌ | ❌ | ✅ n1-n6 | ✅ offset | Madagascar |
 | npy | ❌ | ❌ | ❌ | ✅ mmap | ✅ header | ❌ | ❌ | ✅ shape | ✅ offset | NumPy |
 | json | ❌ | ❌ | ❌ | ❌ | ✅ self-describing | ❌ | ❌ | ❌ | ❌ | Universal |
@@ -98,9 +99,12 @@ focusing on capabilities relevant to **geophysics and seismic processing** workf
 
 ### ✅ High Impact (Complete)
 9. **TensorStore C++ Native API**: Replace Python bridge with native C++ — ~2900x read speedup (1 MB/s → 2905 MB/s), 229 MB/s write
+10. **Compression Level Sweep** (`--compression-sweep`): Levels 0-9, blosc-lz4 compression nearly free for reads
+11. **Memory Usage Tracking**: Peak RSS during read/write, displayed in console/markdown reports
+12. **`--all` CLI Flag**: Run all benchmark modes with one command
 
 ### 🔲 Future (Not Yet Implemented)
-9. **Cloud I/O Benchmark**: S3/GCS read performance (mock or real)
-10. **Compression Level Sweep**: Same format, different compression levels
-11. **Memory Usage Tracking**: Peak RSS during read/write operations
-12. **TensorStore C++ Native API**: ✅ DONE — native C++ via FetchContent, ~2905 MB/s read, 229 MB/s write
+- **Cloud I/O Benchmark**: S3/GCS read performance (requires cloud credentials)
+- **OpenVDS** (Equinor): Cloud-optimized seismic, C++ native (complex API, on hold)
+- **DL-SEG-Y**: Deep-learning variant of SEG-Y
+- **BP/BLOOM**: ADIOS2-based formats for HPC seismic
