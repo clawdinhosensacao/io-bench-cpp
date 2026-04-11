@@ -19,8 +19,9 @@ bool ZarrFormat::is_available() const {
 }
 
 void ZarrFormat::write(const std::string& path, const float* data, const ArrayShape& shape) {
-    // Create zarr directory structure
+    // Remove existing zarr directory if it exists (stale chunk files can corrupt data)
     fs::path zarr_path(path);
+    fs::remove_all(zarr_path);
     fs::create_directories(zarr_path);
     
     // Write .zarray metadata

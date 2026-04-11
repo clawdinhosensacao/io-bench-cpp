@@ -3,6 +3,7 @@
 #include <cstring>
 #include <cstdint>
 #include <cstdlib>
+#include <filesystem>
 
 #ifdef HAVE_TILEDB
 #include <tiledb/tiledb.h>
@@ -24,8 +25,7 @@ void TileDBFormat::write(const std::string& path, const float* data, const Array
     tiledb_ctx_alloc(nullptr, &ctx);
 
     // Remove existing array directory if it exists
-    std::string cmd = "rm -rf " + path;  // NOLINT(bugprone-command-processor)
-    system(cmd.c_str());
+    std::filesystem::remove_all(path);
 
     // Create dimensions: y (slowest), z, x (fastest)
     tiledb_dimension_t* x_dim = nullptr;
