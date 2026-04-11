@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cstring>
 #include <optional>
+#include <filesystem>
 
 namespace io_bench {
 
@@ -247,6 +248,24 @@ inline double get_rss_mb() {
 #else
     return 0.0;
 #endif
+}
+
+/// Calculate file or directory size in MB.
+/// For directories (e.g. zarr, tiledb), sums all regular files recursively.
+/// For regular files, returns the file size.
+/// Returns 0.0 if the path does not exist.
+inline double file_size_mb(const std::filesystem::path& path) {
+    if (!std::filesystem::exists(path)) { return 0.0; }
+    if (std::filesystem::is_directory(path)) {
+        std::uintmax_t dir_size = 0;
+        for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
+            if (std::filesystem::is_regular_file(entry)) {
+                dir_size += std::filesystem::file_size(entry);
+            }
+        }
+        return static_cast<double>(dir_size) / (1024.0 * 1024.0);
+    }
+    return static_cast<double>(std::filesystem::file_size(path)) / (1024.0 * 1024.0);
 }
 
 } // namespace io_bench

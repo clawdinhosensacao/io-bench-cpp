@@ -70,37 +70,23 @@ BenchResult BenchmarkRunner::run_single(FormatAdapter& adapter) {
         
         for (std::size_t i = 0; i < config_.iterations; ++i) {
             // Write
-            double rss_before_write = get_rss_mb();
             Timer write_timer;
             write_timer.start();
             adapter.write(path_str, data.data(), shape);
             write_timer.stop();
-            double rss_after_write = get_rss_mb();
             total_write_ms += write_timer.elapsed_ms();
-            result.peak_write_rss_mb = std::max(result.peak_write_rss_mb, rss_after_write);
+            result.peak_write_rss_mb = std::max(result.peak_write_rss_mb, get_rss_mb());
             
-            // Get file size after write (handles both files and directories)
-            if (std::filesystem::is_directory(file_path)) {
-                std::uintmax_t dir_size = 0;
-                for (const auto& entry : std::filesystem::recursive_directory_iterator(file_path)) {
-                    if (std::filesystem::is_regular_file(entry)) {
-                        dir_size += std::filesystem::file_size(entry);
-                    }
-                }
-                result.file_size_mb = static_cast<double>(dir_size) / (1024.0 * 1024.0);
-            } else {
-                result.file_size_mb = std::filesystem::file_size(file_path) / (1024.0 * 1024.0);
-            }
+            // Get file size after write
+            result.file_size_mb = file_size_mb(file_path);
             
             // Read
-            double rss_before_read = get_rss_mb();
             Timer read_timer;
             read_timer.start();
             adapter.read(path_str, read_buffer.data(), shape);
             read_timer.stop();
-            double rss_after_read = get_rss_mb();
             total_read_ms += read_timer.elapsed_ms();
-            result.peak_read_rss_mb = std::max(result.peak_read_rss_mb, rss_after_read);
+            result.peak_read_rss_mb = std::max(result.peak_read_rss_mb, get_rss_mb());
         }
         
         // Average times
@@ -141,7 +127,7 @@ std::vector<BenchResult> BenchmarkRunner::run_all() {
     std::vector<BenchResult> results;
     
     results.reserve(adapters_.size());
-for (auto& adapter : adapters_) {
+    for (auto& adapter : adapters_) {
         results.push_back(run_single(*adapter));
     }
     
@@ -204,18 +190,7 @@ ParallelReadResult BenchmarkRunner::run_parallel_read(FormatAdapter& adapter) {
         adapter.write(path_str, data.data(), shape);
 
         // Get file size
-        double file_size_mb = 0.0;
-        if (std::filesystem::is_directory(file_path)) {
-            std::uintmax_t dir_size = 0;
-            for (const auto& entry : std::filesystem::recursive_directory_iterator(file_path)) {
-                if (std::filesystem::is_regular_file(entry)) {
-                    dir_size += std::filesystem::file_size(entry);
-                }
-            }
-            file_size_mb = static_cast<double>(dir_size) / (1024.0 * 1024.0);
-        } else {
-            file_size_mb = static_cast<double>(std::filesystem::file_size(file_path)) / (1024.0 * 1024.0);
-        }
+        const double fsize_mb = file_size_mb(file_path);
 
         // Warmup read
         {
@@ -285,7 +260,7 @@ ParallelReadResult BenchmarkRunner::run_parallel_read(FormatAdapter& adapter) {
         result.per_thread_ms /= static_cast<double>(num_threads);
 
         // Aggregate throughput: all threads reading simultaneously
-        result.data_size_mb = file_size_mb * static_cast<double>(num_threads);
+        result.data_size_mb = fsize_mb * static_cast<double>(num_threads);
         result.aggregate_mbps = throughput_mbps(result.data_size_mb, result.total_read_ms / 1000.0);
 
         // Verify first thread's data
@@ -341,17 +316,7 @@ SliceReadResult BenchmarkRunner::run_slice_read(FormatAdapter& adapter) {
         adapter.write(path_str, data.data(), shape);
 
         // Get file size
-        if (std::filesystem::is_directory(file_path)) {
-            std::uintmax_t dir_size = 0;
-            for (const auto& entry : std::filesystem::recursive_directory_iterator(file_path)) {
-                if (std::filesystem::is_regular_file(entry)) {
-                    dir_size += std::filesystem::file_size(entry);
-                }
-            }
-            result.file_size_mb = static_cast<double>(dir_size) / (1024.0 * 1024.0);
-        } else {
-            result.file_size_mb = static_cast<double>(std::filesystem::file_size(file_path)) / (1024.0 * 1024.0);
-        }
+        result.file_size_mb = file_size_mb(file_path);
 
         const std::size_t slice_elements = shape.nx * shape.nz;
         result.slice_size_mb = static_cast<double>(slice_elements * sizeof(float)) / (1024.0 * 1024.0);
@@ -445,15 +410,7 @@ TraceReadResult BenchmarkRunner::run_trace_read(FormatAdapter& adapter) {
         adapter.write(file_path.string(), data.data(), shape);
 
         // File size
-        if (std::filesystem::is_directory(file_path)) {
-            std::uintmax_t dir_size = 0;
-            for (const auto& entry : std::filesystem::recursive_directory_iterator(file_path)) {
-                if (entry.is_regular_file()) { dir_size += entry.file_size(); }
-            }
-            result.file_size_mb = static_cast<double>(dir_size) / (1024.0 * 1024.0);
-        } else {
-            result.file_size_mb = static_cast<double>(std::filesystem::file_size(file_path)) / (1024.0 * 1024.0);
-        }
+        result.file_size_mb = file_size_mb(file_path);
 
         // --- Sequential trace read: read all traces one by one ---
         {
@@ -613,15 +570,7 @@ CheckpointResult BenchmarkRunner::run_checkpoint(FormatAdapter& adapter) {
         result.write_mbps = throughput_mbps(shape.mb(), write_timer.elapsed_s());
 
         // File size
-        if (std::filesystem::is_directory(file_path)) {
-            std::uintmax_t dir_size = 0;
-            for (const auto& entry : std::filesystem::recursive_directory_iterator(file_path)) {
-                if (entry.is_regular_file()) { dir_size += entry.file_size(); }
-            }
-            result.file_size_mb = static_cast<double>(dir_size) / (1024.0 * 1024.0);
-        } else {
-            result.file_size_mb = static_cast<double>(std::filesystem::file_size(file_path)) / (1024.0 * 1024.0);
-        }
+        result.file_size_mb = file_size_mb(file_path);
 
         // --- Restart: read back ---
         std::vector<float> read_data(shape.total());
@@ -719,15 +668,7 @@ CompressionSweepResult BenchmarkRunner::run_compression_sweep(const std::string&
             lvl.write_mbps = throughput_mbps(shape.mb(), write_timer.elapsed_s());
 
             // File size
-            if (std::filesystem::is_directory(file_path)) {
-                std::uintmax_t dir_size = 0;
-                for (const auto& entry : std::filesystem::recursive_directory_iterator(file_path)) {
-                    if (entry.is_regular_file()) { dir_size += entry.file_size(); }
-                }
-                lvl.file_size_mb = static_cast<double>(dir_size) / (1024.0 * 1024.0);
-            } else {
-                lvl.file_size_mb = static_cast<double>(std::filesystem::file_size(file_path)) / (1024.0 * 1024.0);
-            }
+            lvl.file_size_mb = file_size_mb(file_path);
             lvl.compression_ratio = (lvl.file_size_mb > 0.0) ? shape.mb() / lvl.file_size_mb : 0.0;
 
             // Read back
