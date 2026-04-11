@@ -56,6 +56,7 @@ void print_usage(const char* prog) {
               << "  --checkpoint       Run checkpoint/restart benchmark (write-then-read with integrity check)\n"
               << "  --big-volume       Shortcut for --preset 3d-big-volume (401×401×501, ~307 MB)\n"
               << "  --compression-sweep Run compression level sweep (levels 0-9)\n"
+              << "  --all              Run all benchmark modes (slice, trace, stream, checkpoint, compression)\n"
               << "  --preset <name>    Use geophysics preset (overrides nx/nz/ny/iterations)\n"
               << "  --list-presets     List available geophysics presets\n"
               << "  --output <path>    Output markdown report path\n"
@@ -91,6 +92,7 @@ int main(int argc, char* argv[]) {
     bool stream_write = false;
     bool checkpoint = false;
     bool compression_sweep = false;
+    bool run_all_modes = false;
     
     // Parse arguments
     for (int i = 1; i < argc; ++i) {
@@ -129,6 +131,8 @@ int main(int argc, char* argv[]) {
             checkpoint = true;
         } else if (arg == "--compression-sweep") {
             compression_sweep = true;
+        } else if (arg == "--all") {
+            run_all_modes = true;
         } else if (arg == "--big-volume") {
             preset_name = "3d-big-volume";
         } else if (arg == "--preset") {
@@ -165,6 +169,22 @@ int main(int argc, char* argv[]) {
             std::cerr << "Error: unknown preset '" << preset_name << "'\n";
             std::cerr << "Use --list-presets to see available presets.\n";
             return 1;
+        }
+    }
+    
+    // Apply --all: enable all benchmark modes
+    if (run_all_modes) {
+        slice_read = true;
+        trace_read = true;
+        stream_write = true;
+        checkpoint = true;
+        compression_sweep = true;
+        // Use 3D velocity model preset for --all if no preset/grid specified
+        if (config.ny <= 1 && preset_name.empty()) {
+            config.nx = 401;
+            config.nz = 201;
+            config.ny = 201;
+            config.iterations = 2;
         }
     }
     

@@ -2,6 +2,7 @@
 #include "io_bench/benchmark.hpp"
 #include "io_bench/formats.hpp"
 #include <thread>
+#include <fstream>
 
 class BenchmarkTest : public ::testing::Test {
 protected:
@@ -164,4 +165,42 @@ TEST_F(BenchmarkTest, CheckpointResultDefaults) {
     EXPECT_FALSE(result.integrity_ok);
     EXPECT_DOUBLE_EQ(result.max_abs_error, 0.0);
     EXPECT_TRUE(result.error.empty());
+}
+
+TEST_F(BenchmarkTest, FileSizeMbRegularFile) {
+    // Write a small binary file and check file_size_mb
+    io_bench::BinaryFormat format;
+    io_bench::ArrayShape shape{10, 8};
+    auto data = io_bench::BenchmarkRunner::generate_data(shape);
+    auto path = std::filesystem::temp_directory_path() / "fs_test_file.bin";
+    format.write(path.string(), data.data(), shape);
+
+    double size_mb = io_bench::file_size_mb(path);
+    double expected_mb = static_cast<double>(shape.bytes()) / (1024.0 * 1024.0);
+    EXPECT_NEAR(size_mb, expected_mb, 0.001);
+
+    std::filesystem::remove(path);
+}
+
+TEST_F(BenchmarkTest, FileSizeMbNonExistentPath) {
+    auto path = std::filesystem::temp_directory_path() / "nonexistent_file_12345.bin";
+    EXPECT_DOUBLE_EQ(io_bench::file_size_mb(path), 0.0);
+}
+
+TEST_F(BenchmarkTest, FileSizeMbDirectory) {
+    // Create a temporary directory with a known-size file
+    auto dir = std::filesystem::temp_directory_path() / "fs_test_dir";
+    std::filesystem::create_directories(dir);
+    std::vector<float> data(100, 1.0f);
+    auto file_path = dir / "data.bin";
+    {
+        std::ofstream f(file_path, std::ios::binary);
+        f.write(reinterpret_cast<const char*>(data.data()), data.size() * sizeof(float));
+    }
+
+    double size_mb = io_bench::file_size_mb(dir);
+    double expected_mb = static_cast<double>(100 * sizeof(float)) / (1024.0 * 1024.0);
+    EXPECT_NEAR(size_mb, expected_mb, 0.001);
+
+    std::filesystem::remove_all(dir);
 }

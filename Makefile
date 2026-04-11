@@ -32,7 +32,7 @@ build:
 CXXFLAGS += -I third_party/json/include -I third_party/cnpy
 
 # Sources
-SRCS = src/benchmark.cpp src/report.cpp src/formats.cpp \
+SRCS = src/benchmark.cpp src/report.cpp \
        src/formats/binary.cpp src/formats/npy.cpp src/formats/json.cpp \
        src/formats/hdf5.cpp src/formats/netcdf.cpp src/formats/tiledb.cpp \
        src/formats/adios2.cpp \
