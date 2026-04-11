@@ -149,6 +149,7 @@ std::vector<std::unique_ptr<FormatAdapter>> create_all_adapters() {
     adapters.push_back(std::make_unique<NetcdfFormat>());
     adapters.push_back(std::make_unique<TileDBFormat>());
     adapters.push_back(std::make_unique<Adios2Format>());
+    adapters.push_back(std::make_unique<DuckDBFormat>());
     
     // Future formats (placeholders)
     adapters.push_back(std::make_unique<ZarrFormat>());

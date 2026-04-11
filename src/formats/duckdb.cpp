@@ -26,21 +26,18 @@ void DuckDBFormat::write(const std::string& path, const float* data, const Array
     duckdb_database db = nullptr;
     duckdb_connection conn = nullptr;
     duckdb_result result;
-    
-    // Open in-memory database then save to file
-    std::string conn_str = path;
-    
-    duckdb_state status = duckdb_open(conn_str.c_str(), &db);
+
+    duckdb_state status = duckdb_open(path.c_str(), &db);
     if (status != DuckDBSuccess || db == nullptr) {
         throw std::runtime_error("DuckDB: Failed to open database: " + path);
     }
-    
+
     status = duckdb_connect(db, &conn);
     if (status != DuckDBSuccess) {
         duckdb_close(&db);
         throw std::runtime_error("DuckDB: Failed to connect");
     }
-    
+
     // Create table with appropriate dimensions
     std::ostringstream create_sql;
     create_sql << "CREATE TABLE velocity (";
@@ -50,7 +47,7 @@ void DuckDBFormat::write(const std::string& path, const float* data, const Array
         create_sql << "ix INTEGER, iz INTEGER, value FLOAT";
     }
     create_sql << ")";
-    
+
     status = duckdb_query(conn, create_sql.str().c_str(), &result);
     if (status != DuckDBSuccess) {
         duckdb_disconnect(&conn);
@@ -58,12 +55,16 @@ void DuckDBFormat::write(const std::string& path, const float* data, const Array
         throw std::runtime_error("DuckDB: Failed to create table");
     }
     duckdb_destroy_result(&result);
-    
-    // Insert data
-    std::ostringstream insert_sql;
-    insert_sql << "INSERT INTO velocity VALUES ";
-    
-    bool first = true;
+
+    // Use Appender API for efficient bulk insert with exact float precision
+    duckdb_appender appender = nullptr;
+    status = duckdb_appender_create(conn, "main", "velocity", &appender);
+    if (status != DuckDBSuccess) {
+        duckdb_disconnect(&conn);
+        duckdb_close(&db);
+        throw std::runtime_error("DuckDB: Failed to create appender");
+    }
+
     for (std::size_t iz = 0; iz < shape.nz; ++iz) {
         for (std::size_t iy = 0; iy < shape.ny; ++iy) {
             for (std::size_t ix = 0; ix < shape.nx; ++ix) {
@@ -73,27 +74,35 @@ void DuckDBFormat::write(const std::string& path, const float* data, const Array
                 } else {
                     idx = iz * shape.nx + ix;
                 }
-                
-                if (!first) insert_sql << ", ";
-                first = false;
-                
+
+                duckdb_append_int32(appender, static_cast<int32_t>(ix));
                 if (shape.ny > 1) {
-                    insert_sql << "(" << ix << ", " << iy << ", " << iz << ", " << data[idx] << ")";
-                } else {
-                    insert_sql << "(" << ix << ", " << iz << ", " << data[idx] << ")";
+                    duckdb_append_int32(appender, static_cast<int32_t>(iy));
+                }
+                duckdb_append_int32(appender, static_cast<int32_t>(iz));
+                float fval = data[idx];
+                duckdb_append_float(appender, fval);
+
+                status = duckdb_appender_end_row(appender);
+                if (status != DuckDBSuccess) {
+                    duckdb_appender_destroy(&appender);
+                    duckdb_disconnect(&conn);
+                    duckdb_close(&db);
+                    throw std::runtime_error("DuckDB: Failed to append row");
                 }
             }
         }
     }
-    
-    status = duckdb_query(conn, insert_sql.str().c_str(), &result);
+
+    status = duckdb_appender_flush(appender);
     if (status != DuckDBSuccess) {
+        duckdb_appender_destroy(&appender);
         duckdb_disconnect(&conn);
         duckdb_close(&db);
-        throw std::runtime_error("DuckDB: Failed to insert data");
+        throw std::runtime_error("DuckDB: Failed to flush appender");
     }
-    duckdb_destroy_result(&result);
-    
+
+    duckdb_appender_destroy(&appender);
     duckdb_disconnect(&conn);
     duckdb_close(&db);
 #else
@@ -109,18 +118,18 @@ void DuckDBFormat::read(const std::string& path, float* data, const ArrayShape& 
     duckdb_database db = nullptr;
     duckdb_connection conn = nullptr;
     duckdb_result result;
-    
+
     duckdb_state status = duckdb_open(path.c_str(), &db);
     if (status != DuckDBSuccess || db == nullptr) {
         throw std::runtime_error("DuckDB: Failed to open database: " + path);
     }
-    
+
     status = duckdb_connect(db, &conn);
     if (status != DuckDBSuccess) {
         duckdb_close(&db);
         throw std::runtime_error("DuckDB: Failed to connect");
     }
-    
+
     // Read data
     status = duckdb_query(conn, "SELECT * FROM velocity ORDER BY iz, iy, ix", &result);
     if (status != DuckDBSuccess) {
@@ -128,29 +137,25 @@ void DuckDBFormat::read(const std::string& path, float* data, const ArrayShape& 
         duckdb_close(&db);
         throw std::runtime_error("DuckDB: Failed to query data");
     }
-    
+
     // Get row count
     std::size_t rows = duckdb_row_count(&result);
     std::size_t expected = shape.nx * shape.nz * shape.ny;
-    
+
     if (rows != expected) {
         duckdb_destroy_result(&result);
         duckdb_disconnect(&conn);
         duckdb_close(&db);
         throw std::runtime_error("DuckDB: Row count mismatch");
     }
-    
-    // Extract values
+
+    // Extract values from the last column
+    int col_idx = shape.ny > 1 ? 3 : 2;
     for (std::size_t i = 0; i < rows; ++i) {
-        // Value is in the last column (use duckdb_value_float directly)
-        // Column index: shape.ny > 1 ? 3 : 2 (last column is value)
-        int col_idx = shape.ny > 1 ? 3 : 2;
-        
-        // Get value as double and convert to float (DuckDB returns DOUBLE for FLOAT columns)
         double val = duckdb_value_double(&result, col_idx, static_cast<idx_t>(i));
         data[i] = static_cast<float>(val);
     }
-    
+
     duckdb_destroy_result(&result);
     duckdb_disconnect(&conn);
     duckdb_close(&db);

@@ -47,6 +47,8 @@ void print_results(const std::vector<BenchResult>& results) {
             std::cout << std::setprecision(1) << r.write_mbps << " | ";
             std::cout << r.read_mbps << " | ";
             std::cout << std::setprecision(1) << std::max(r.peak_write_rss_mb, r.peak_read_rss_mb) << " |";
+        } else if (r.available && !r.error.empty()) {
+            std::cout << " - | - | - | - | - | - | - | " << r.error << " |";
         } else {
             std::cout << " - | - | - | - | - | - | - |";
         }
