@@ -2,7 +2,7 @@
 
 A comprehensive I/O format benchmark for scientific computing arrays, implemented entirely in C++20. Focused on **geophysics and seismic processing** workloads with **direct access**, **parallel I/O**, and **chunked slice reads**.
 
-## Supported Formats (19 formats)
+## Supported Formats (20 formats)
 
 | Format | Status | Type | Slice | Thread-safe | Trace | Stream | Description |
 |--------|--------|------|-------|-------------|-------|--------|-------------|

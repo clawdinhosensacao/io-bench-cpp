@@ -41,6 +41,7 @@ focusing on capabilities relevant to **geophysics and seismic processing** workf
 | asdf | ✅ blocks | ✅ gzip/bzip2/lz4 | ❌ | ❌ | ✅ rich (HDF5) | ✅ append | ❌ | ❌ 1D traces | ✅ time window | ✅ Seismology |
 | tensorstore | ✅ chunks | ✅ zlib/gzip/zstd | ✅ multi-thread | ❌ | ✅ schema | ❌ | ✅ S3/GCS/Azure | ✅ ND arrays | ✅ slicing | Python/C++ |
 | tensorstore_cpp | ✅ chunks | ✅ zlib/gzip/zstd | ✅ multi-thread | ❌ | ✅ schema | ❌ | ✅ S3/GCS/Azure | ✅ ND arrays | ✅ slicing | C++ native |
+| duckdb | ✅ row groups | ✅ parquet | ❌ | ❌ | ✅ SQL schema | ✅ INSERT | ✅ S3/httpfs | ✅ 3D columns | ✅ SQL queries | Python/C++/R/Java |
 
 ## Key Findings for Geophysics
 

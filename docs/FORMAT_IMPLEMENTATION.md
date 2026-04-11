@@ -33,7 +33,7 @@ This document describes the implementation of I/O format adapters in the `io-ben
 | tensorstore | ✅ Optional | **Native C++** (zarr driver) | ✓ | ✓ | ✗ | ✗ | ✓ blosc-lz4 |
 | adios2 | ❌ N/A | Not available | ✗ | ✗ | ✗ | ✗ | ✗ |
 
-**Total: 19 formats (18 working)**
+**Total: 20 formats (19 working, 1 N/A)**
 
 ---
 
@@ -206,7 +206,7 @@ make bench            # Run benchmark with default grid
 - **BP/BLOOM**: ADIOS2-based formats for HPC seismic
 
 ### Known Limitations
-1. **DuckDB**: Row-oriented storage is slow for large arrays; consider column-oriented approach
+1. **DuckDB**: SQL-based storage has high overhead for bulk array data; Appender API used for writes
 2. **Zarr (Python bridge)**: No compression support in native C++ implementation
 3. **TileDB/ADIOS2**: Available but not fully tested with large datasets
 4. **Python bridge formats**: High overhead (~1 MB/s) due to subprocess spawning; TensorStore C++ native is the exception
