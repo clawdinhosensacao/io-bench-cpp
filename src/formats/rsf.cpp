@@ -1,7 +1,6 @@
 #include "io_bench/formats.hpp"
 
 #include <cstdint>
-#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
@@ -32,15 +31,13 @@ void RsfFormat::write(const std::string& path, const float* data, const ArraySha
     // Write binary data
     {
         std::ofstream f(data_path, std::ios::binary);
-        if (!f) { throw std::runtime_error("RSF: cannot write data file: " + data_path);
-}
+        if (!f) { throw std::runtime_error("RSF: cannot write data file: " + data_path); }
         f.write(reinterpret_cast<const char*>(data), shape.bytes());
     }
 
     // Write text header
     std::ofstream hf(header_path);
-    if (!hf) { throw std::runtime_error("RSF: cannot write header file: " + header_path);
-}
+    if (!hf) { throw std::runtime_error("RSF: cannot write header file: " + header_path); }
 
     // RSF convention: n1 is the fastest axis (x), n2 is next (z), n3 is slowest (y)
     hf << "n1=" << shape.nx << "\n";
@@ -65,13 +62,11 @@ void RsfFormat::read(const std::string& path, float* data, const ArrayShape& sha
 
     // Verify header exists
     std::ifstream hf(header_path);
-    if (!hf) { throw std::runtime_error("RSF: cannot read header file: " + header_path);
-}
+    if (!hf) { throw std::runtime_error("RSF: cannot read header file: " + header_path); }
 
     // Read binary data
     std::ifstream df(data_path, std::ios::binary | std::ios::ate);
-    if (!df) { throw std::runtime_error("RSF: cannot read data file: " + data_path);
-}
+    if (!df) { throw std::runtime_error("RSF: cannot read data file: " + data_path); }
 
     auto size = df.tellg();
     if (static_cast<std::size_t>(size) != shape.bytes()) {
