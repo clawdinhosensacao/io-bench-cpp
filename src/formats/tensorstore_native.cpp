@@ -1,4 +1,5 @@
 #include "io_bench/formats.hpp"
+#include "io_bench/types.hpp"
 
 #ifdef HAVE_TENSORSTORE_CPP
 
@@ -187,8 +188,11 @@ std::string TensorStoreFormat::name() const {
 
 bool TensorStoreFormat::is_available() const {
     // Check if the Python tensorstore module is importable
-    int ret = std::system("python3 -c 'import tensorstore' 2>/dev/null");  // NOLINT(bugprone-command-processor)
-    return ret == 0;
+    return !find_python_with_module("tensorstore").empty();
+}
+
+static std::string ts_python() {
+    return find_python_with_module("tensorstore");
 }
 
 static std::string write_temp_script(const std::string& content) {
@@ -231,7 +235,7 @@ void TensorStoreFormat::write(const std::string& path, const float* data, const 
            << "store[:] = data\n";
 
     std::string script_path = write_temp_script(script.str());
-    std::string cmd = "python3 " + script_path + " " + tmp_bin + " " + path + " 2>&1";
+    std::string cmd = ts_python() + " " + script_path + " " + tmp_bin + " " + path + " 2>&1";
     int ret = std::system(cmd.c_str());  // NOLINT(bugprone-command-processor)
 
     std::remove(tmp_bin.c_str());
@@ -260,7 +264,7 @@ void TensorStoreFormat::read(const std::string& path, float* data, const ArraySh
            << "np.array(data).astype(np.float32).tofile(out_bin)\n";
 
     std::string script_path = write_temp_script(script.str());
-    std::string cmd = "python3 " + script_path + " " + path + " " + tmp_bin + " 2>&1";
+    std::string cmd = ts_python() + " " + script_path + " " + path + " " + tmp_bin + " 2>&1";
     int ret = std::system(cmd.c_str());  // NOLINT(bugprone-command-processor)
 
     if (ret != 0) {
@@ -330,7 +334,7 @@ void TensorStoreFormat::write_compressed(const std::string& path, const float* d
            << "store[:] = data\n";
 
     std::string script_path = write_temp_script(script.str());
-    std::string cmd = "python3 " + script_path + " " + tmp_bin + " " + path + " " + std::to_string(level) + " 2>&1";
+    std::string cmd = ts_python() + " " + script_path + " " + tmp_bin + " " + path + " " + std::to_string(level) + " 2>&1";
     int ret = std::system(cmd.c_str());  // NOLINT(bugprone-command-processor)
 
     std::remove(tmp_bin.c_str());

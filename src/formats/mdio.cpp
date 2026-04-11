@@ -1,4 +1,5 @@
 #include "io_bench/formats.hpp"
+#include "io_bench/types.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -9,21 +10,12 @@
 
 namespace io_bench {
 
-/// Find a Python interpreter that has the mdio module available
-static bool check_mdio_python() {
-    // Try python3.13 first (known to have mdio installed)
-    int ret = std::system("python3.13 -c 'import mdio' 2>/dev/null");  // NOLINT(bugprone-command-processor)
-    if (ret == 0) { return true; }
-    // Fallback to python3
-    ret = std::system("python3 -c 'import mdio' 2>/dev/null");  // NOLINT(bugprone-command-processor)
-    return ret == 0;
+static std::string mdio_python() {
+    return find_python_with_module("mdio");
 }
 
-/// Get the Python interpreter path that has mdio
-static const char* mdio_python() {
-    int ret = std::system("python3.13 -c 'import mdio' 2>/dev/null");  // NOLINT(bugprone-command-processor)
-    if (ret == 0) { return "python3.13"; }
-    return "python3";
+static bool check_mdio_python() {
+    return !mdio_python().empty();
 }
 
 static std::string write_temp_script(const std::string& content, const std::string& name) {
@@ -77,7 +69,7 @@ void MdioFormat::write(const std::string& path, const float* data, const ArraySh
            << "print('OK')\n";
 
     std::string script_path = write_temp_script(script.str(), "mdio_bench_write.py");
-    std::string cmd = std::string(mdio_python()) + " " + script_path + " " + tmp_bin + " " + path + " 2>&1";
+    std::string cmd = mdio_python() + " " + script_path + " " + tmp_bin + " " + path + " 2>&1";
     int ret = std::system(cmd.c_str());  // NOLINT(bugprone-command-processor)
 
     // Clean up
@@ -108,7 +100,7 @@ void MdioFormat::read(const std::string& path, float* data, const ArrayShape& sh
            << "data.tofile(out_bin)\n";
 
     std::string script_path = write_temp_script(script.str(), "mdio_bench_read.py");
-    std::string cmd = std::string(mdio_python()) + " " + script_path + " " + path + " " + tmp_bin + " 2>&1";
+    std::string cmd = mdio_python() + " " + script_path + " " + path + " " + tmp_bin + " 2>&1";
     int ret = std::system(cmd.c_str());  // NOLINT(bugprone-command-processor)
 
     if (ret != 0) {

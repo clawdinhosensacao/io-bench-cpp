@@ -11,6 +11,10 @@
 
 namespace io_bench {
 
+/// Check if a Python module is available (tries python3.13 then python3)
+/// Returns the Python executable name if found, or empty string if not
+std::string find_python_with_module(const char* module_name);
+
 /// Result of a single benchmark run
 struct BenchResult {
     std::string name;              ///< Format name
