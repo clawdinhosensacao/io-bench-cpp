@@ -1,6 +1,7 @@
 #include "io_bench/formats.hpp"
 #include <stdexcept>
 #include <fstream>
+#include <filesystem>
 #include <sstream>
 
 #ifdef HAVE_DUCKDB
@@ -19,6 +20,9 @@ bool DuckDBFormat::is_available() const {
 
 void DuckDBFormat::write(const std::string& path, const float* data, const ArrayShape& shape) {
 #ifdef HAVE_DUCKDB
+    // Remove existing database file/directory (DuckDB creates a directory on disk)
+    std::filesystem::remove_all(path);
+
     duckdb_database db = nullptr;
     duckdb_connection conn = nullptr;
     duckdb_result result;
