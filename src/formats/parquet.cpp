@@ -89,7 +89,6 @@ void ParquetFormat::write(const std::string& path, const float* data, const Arra
 
 void ParquetFormat::read(const std::string& path, float* data, const ArrayShape& shape) {
 #ifdef HAVE_PARQUET
-    (void)shape;  // shape implicitly determines data buffer size from caller
     std::shared_ptr<arrow::io::ReadableFile> infile;
     auto maybe_infile = arrow::io::ReadableFile::Open(path);
     if (!maybe_infile.ok()) throw std::runtime_error("Parquet read open failed: " + path);
@@ -103,6 +102,12 @@ void ParquetFormat::read(const std::string& path, float* data, const ArrayShape&
     std::shared_ptr<arrow::Table> table;
     auto read_status = reader->ReadTable(&table);
     if (!read_status.ok()) throw std::runtime_error("Parquet read failed");
+
+    // Validate row count matches expected shape
+    if (static_cast<std::size_t>(table->num_rows()) != shape.total()) {
+        throw std::runtime_error("Parquet row count mismatch: expected " +
+            std::to_string(shape.total()) + ", got " + std::to_string(table->num_rows()));
+    }
 
     // Extract value column (column 3)
     auto value_chunked = table->column(3);
