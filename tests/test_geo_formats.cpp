@@ -360,3 +360,36 @@ TEST_F(GeoFormatTest, Hdf5NotThreadSafe) {
     io_bench::Hdf5Format format;
     EXPECT_FALSE(format.is_thread_safe());
 }
+
+// --- DuckDB ---
+
+TEST_F(GeoFormatTest, DuckDBWriteRead2D) {
+    io_bench::DuckDBFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "DuckDB not available";
+
+    auto path = temp_dir_ / "test.duckdb";
+    format.write(path.string(), data2d_.data(), shape2d_);
+    format.read(path.string(), read2d_.data(), shape2d_);
+
+    for (std::size_t i = 0; i < shape2d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data2d_[i], read2d_[i]) << "mismatch at index " << i;
+    }
+}
+
+TEST_F(GeoFormatTest, DuckDBWriteRead3D) {
+    io_bench::DuckDBFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "DuckDB not available";
+
+    auto path = temp_dir_ / "test3d.duckdb";
+    format.write(path.string(), data3d_.data(), shape3d_);
+    format.read(path.string(), read3d_.data(), shape3d_);
+
+    for (std::size_t i = 0; i < shape3d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data3d_[i], read3d_[i]) << "mismatch at index " << i;
+    }
+}
+
+TEST_F(GeoFormatTest, DuckDBNotThreadSafe) {
+    io_bench::DuckDBFormat format;
+    EXPECT_FALSE(format.is_thread_safe());
+}
