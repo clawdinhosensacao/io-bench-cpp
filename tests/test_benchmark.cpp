@@ -47,8 +47,8 @@ TEST_F(BenchmarkTest, GenerateDataVariesWithSeed) {
 TEST_F(BenchmarkTest, ArrayShapeCalculatesCorrectly) {
     io_bench::ArrayShape shape{100, 80};
     
-    EXPECT_EQ(shape.total(), 8000);
-    EXPECT_EQ(shape.bytes(), 8000 * sizeof(float));
+    EXPECT_EQ(shape.total(), 8000UL);
+    EXPECT_EQ(shape.bytes(), 8000UL * sizeof(float));
     EXPECT_NEAR(shape.mb(), 8000 * sizeof(float) / (1024.0 * 1024.0), 0.001);
 }
 
