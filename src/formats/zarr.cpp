@@ -61,7 +61,7 @@ void ZarrFormat::write(const std::string& path, const float* data, const ArraySh
             for (std::size_t cx = 0; cx < n_chunks_x; ++cx) {
                 // Build chunk filename
                 std::ostringstream chunk_name;
-                if (shape.ny > 1) {
+                if (shape.is_3d()) {
                     chunk_name << cz << "/" << cy << "/" << cx;
                 } else {
                     chunk_name << cz << "/" << cx;
@@ -89,7 +89,7 @@ void ZarrFormat::write(const std::string& path, const float* data, const ArraySh
                             std::size_t global_x = start_x + ix;
                             
                             std::size_t idx;
-                            if (shape.ny > 1) {
+                            if (shape.is_3d()) {
                                 idx = (global_z * shape.ny * shape.nx) + (global_y * shape.nx) + global_x;
                             } else {
                                 idx = (global_z * shape.nx) + global_x;
@@ -134,7 +134,7 @@ void ZarrFormat::read(const std::string& path, float* data, const ArrayShape& sh
             for (std::size_t cx = 0; cx < n_chunks_x; ++cx) {
                 // Build chunk filename
                 std::ostringstream chunk_name;
-                if (shape.ny > 1) {
+                if (shape.is_3d()) {
                     chunk_name << cz << "/" << cy << "/" << cx;
                 } else {
                     chunk_name << cz << "/" << cx;
@@ -166,7 +166,7 @@ void ZarrFormat::read(const std::string& path, float* data, const ArrayShape& sh
                             std::size_t global_x = start_x + ix;
                             
                             std::size_t idx;
-                            if (shape.ny > 1) {
+                            if (shape.is_3d()) {
                                 idx = (global_z * shape.ny * shape.nx) + (global_y * shape.nx) + global_x;
                             } else {
                                 idx = (global_z * shape.nx) + global_x;

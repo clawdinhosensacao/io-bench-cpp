@@ -94,7 +94,7 @@ void SegyFormat::write(const std::string& path, const float* data, const ArraySh
         // Write trace samples (IEEE float, big-endian)
         for (std::size_t iz = 0; iz < samples_per_trace; ++iz) {
             std::size_t idx;
-            if (shape.ny > 1) {
+            if (shape.is_3d()) {
                 std::size_t ix = trace_idx % shape.nx;
                 std::size_t iy = trace_idx / shape.nx;
                 idx = (iz * shape.ny * shape.nx) + (iy * shape.nx) + ix;
@@ -168,7 +168,7 @@ void SegyFormat::read(const std::string& path, float* data, const ArrayShape& sh
             std::memcpy(&val, &bits, sizeof(float));
             
             std::size_t idx;
-            if (shape.ny > 1) {
+            if (shape.is_3d()) {
                 std::size_t ix = trace_idx % shape.nx;
                 std::size_t iy = trace_idx / shape.nx;
                 idx = (iz * shape.ny * shape.nx) + (iy * shape.nx) + ix;

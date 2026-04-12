@@ -38,7 +38,7 @@ void TileDBFormat::write(const std::string& path, const float* data, const Array
 
     tiledb_dimension_t* y_dim = nullptr;
     tiledb_dimension_t* domain_y = nullptr;
-    if (shape.ny > 1) {
+    if (shape.is_3d()) {
         int64_t y_ext[] = {0, static_cast<int64_t>(shape.ny - 1)};
         tiledb_dimension_alloc(ctx, "y", TILEDB_INT64, y_ext, nullptr, &y_dim);
         domain_y = y_dim;
@@ -83,7 +83,7 @@ void TileDBFormat::write(const std::string& path, const float* data, const Array
     int64_t x_end = static_cast<int64_t>(shape.nx - 1);
 
     int dim_idx = 0;
-    if (shape.ny > 1) {
+    if (shape.is_3d()) {
         tiledb_subarray_add_range(ctx, subarray, dim_idx, &y_start, &y_end, nullptr);
         ++dim_idx;
     }
@@ -149,7 +149,7 @@ void TileDBFormat::read(const std::string& path, float* data, const ArrayShape& 
     int64_t x_end = static_cast<int64_t>(shape.nx - 1);
 
     int dim_idx = 0;
-    if (shape.ny > 1) {
+    if (shape.is_3d()) {
         tiledb_subarray_add_range(ctx, subarray, dim_idx, &y_start, &y_end, nullptr);
         ++dim_idx;
     }

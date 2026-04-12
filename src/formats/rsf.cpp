@@ -46,7 +46,7 @@ void RsfFormat::write(const std::string& path, const float* data, const ArraySha
     hf << "n2=" << shape.nz << "\n";
     hf << "o2=0\n";
     hf << "d2=1\n";
-    if (shape.ny > 1) {
+    if (shape.is_3d()) {
         hf << "n3=" << shape.ny << "\n";
         hf << "o3=0\n";
         hf << "d3=1\n";

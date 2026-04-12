@@ -41,7 +41,7 @@ void DuckDBFormat::write(const std::string& path, const float* data, const Array
     // Create table with appropriate dimensions
     std::ostringstream create_sql;
     create_sql << "CREATE TABLE velocity (";
-    if (shape.ny > 1) {
+    if (shape.is_3d()) {
         create_sql << "ix INTEGER, iy INTEGER, iz INTEGER, value FLOAT";
     } else {
         create_sql << "ix INTEGER, iz INTEGER, value FLOAT";
@@ -69,14 +69,14 @@ void DuckDBFormat::write(const std::string& path, const float* data, const Array
         for (std::size_t iy = 0; iy < shape.ny; ++iy) {
             for (std::size_t ix = 0; ix < shape.nx; ++ix) {
                 std::size_t idx;
-                if (shape.ny > 1) {
+                if (shape.is_3d()) {
                     idx = iz * shape.ny * shape.nx + iy * shape.nx + ix;
                 } else {
                     idx = iz * shape.nx + ix;
                 }
 
                 duckdb_append_int32(appender, static_cast<int32_t>(ix));
-                if (shape.ny > 1) {
+                if (shape.is_3d()) {
                     duckdb_append_int32(appender, static_cast<int32_t>(iy));
                 }
                 duckdb_append_int32(appender, static_cast<int32_t>(iz));

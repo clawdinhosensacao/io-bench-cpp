@@ -54,7 +54,7 @@ void MdioFormat::write(const std::string& path, const float* data, const ArraySh
            << "ny, nz, nx = " << shape.ny << ", " << shape.nz << ", " << shape.nx << "\n"
            << "\n"
            << "data = np.fromfile(tmp_bin, dtype=np.float32)\n";
-    if (shape.ny > 1) {
+    if (shape.is_3d()) {
         script << "data = data.reshape(ny, nz, nx)\n"
                << "ds = xr.Dataset({'velocity': xr.DataArray(data, dims=['y', 'z', 'x'])})\n";
     } else {
