@@ -120,7 +120,20 @@ void DuckDBFormat::read(const std::string& path, float* data, const ArrayShape& 
     duckdb_connection conn = nullptr;
     duckdb_result result;
 
-    duckdb_state status = duckdb_open(path.c_str(), &db);
+    // Open read-only — avoids write-lock contention and is semantically correct
+    duckdb_config config = nullptr;
+    char* config_err = nullptr;
+    duckdb_state cfg_status = duckdb_create_config(&config);
+    if (cfg_status == DuckDBSuccess) {
+        cfg_status = duckdb_set_config(config, "access_mode", "READ_ONLY");
+    }
+    duckdb_state status;
+    if (cfg_status == DuckDBSuccess) {
+        status = duckdb_open_ext(path.c_str(), &db, config, &config_err);
+    } else {
+        status = duckdb_open(path.c_str(), &db);
+    }
+    if (config) { duckdb_destroy_config(&config); }
     if (status != DuckDBSuccess || db == nullptr) {
         throw std::runtime_error("DuckDB: Failed to open database: " + path);
     }
