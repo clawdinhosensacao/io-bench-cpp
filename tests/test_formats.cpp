@@ -92,22 +92,35 @@ TEST_F(FormatTest, MmapWriteRead) {
 TEST_F(FormatTest, Hdf5Availability) {
     io_bench::Hdf5Format format;
     // Just check that availability check doesn't throw
-    EXPECT_NO_THROW(format.is_available());
+    (void)format.is_available();
 }
 
 TEST_F(FormatTest, NetcdfAvailability) {
     io_bench::NetcdfFormat format;
-    EXPECT_NO_THROW(format.is_available());
+    (void)format.is_available();
 }
 
 TEST_F(FormatTest, TileDBAvailability) {
     io_bench::TileDBFormat format;
-    EXPECT_NO_THROW(format.is_available());
+    (void)format.is_available();
 }
 
 TEST_F(FormatTest, Adios2Availability) {
     io_bench::Adios2Format format;
-    EXPECT_NO_THROW(format.is_available());
+    (void)format.is_available();
+}
+
+TEST_F(FormatTest, DuckDBWriteRead) {
+    io_bench::DuckDBFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "DuckDB not available";
+
+    auto path = temp_dir_ / "test.duckdb";
+    format.write(path.string(), data_.data(), shape_);
+    format.read(path.string(), read_buffer_.data(), shape_);
+
+    for (std::size_t i = 0; i < shape_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data_[i], read_buffer_[i]) << "mismatch at index " << i;
+    }
 }
 
 TEST_F(FormatTest, BinaryFileSize) {

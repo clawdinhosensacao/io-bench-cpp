@@ -37,8 +37,6 @@ void DuckDBFormat::write(const std::string& path, const float* data, const Array
         duckdb_close(&db);
         throw std::runtime_error("DuckDB: Failed to connect");
     }
-
-    // Create table with appropriate dimensions
     std::ostringstream create_sql;
     create_sql << "CREATE TABLE velocity (";
     if (shape.is_3d()) {
@@ -50,9 +48,12 @@ void DuckDBFormat::write(const std::string& path, const float* data, const Array
 
     status = duckdb_query(conn, create_sql.str().c_str(), &result);
     if (status != DuckDBSuccess) {
+        const char* err = duckdb_result_error(&result);
+        std::string msg = err ? err : "unknown error";
+        duckdb_destroy_result(&result);
         duckdb_disconnect(&conn);
         duckdb_close(&db);
-        throw std::runtime_error("DuckDB: Failed to create table");
+        throw std::runtime_error("DuckDB: Failed to create table: " + msg);
     }
     duckdb_destroy_result(&result);
 
@@ -130,12 +131,18 @@ void DuckDBFormat::read(const std::string& path, float* data, const ArrayShape& 
         throw std::runtime_error("DuckDB: Failed to connect");
     }
 
-    // Read data
-    status = duckdb_query(conn, "SELECT * FROM velocity ORDER BY iz, iy, ix", &result);
+    // Read data — ORDER BY must match the column schema (2D has no iy column)
+    std::string select_sql = shape.is_3d()
+        ? "SELECT * FROM velocity ORDER BY iz, iy, ix"
+        : "SELECT * FROM velocity ORDER BY iz, ix";
+    status = duckdb_query(conn, select_sql.c_str(), &result);
     if (status != DuckDBSuccess) {
+        const char* err = duckdb_result_error(&result);
+        std::string msg = err ? err : "unknown error";
+        duckdb_destroy_result(&result);
         duckdb_disconnect(&conn);
         duckdb_close(&db);
-        throw std::runtime_error("DuckDB: Failed to query data");
+        throw std::runtime_error("DuckDB: Failed to query data: " + msg);
     }
 
     // Get row count
@@ -149,8 +156,8 @@ void DuckDBFormat::read(const std::string& path, float* data, const ArrayShape& 
         throw std::runtime_error("DuckDB: Row count mismatch");
     }
 
-    // Extract values from the last column
-    int col_idx = shape.ny > 1 ? 3 : 2;
+    // Extract values from the value column (last column)
+    const int col_idx = shape.is_3d() ? 3 : 2;
     for (std::size_t i = 0; i < rows; ++i) {
         double val = duckdb_value_double(&result, col_idx, static_cast<idx_t>(i));
         data[i] = static_cast<float>(val);
