@@ -261,13 +261,13 @@ TEST_F(BenchmarkTest, BinaryFormatWriteReadRoundTrip) {
     std::filesystem::remove(path);
 }
 
-TEST_F(BenchmarkTest, MmapFormatWriteReadRoundTrip) {
+TEST_F(BenchmarkTest, MmapFormat3DWriteReadRoundTrip) {
     io_bench::MmapFormat format;
-    io_bench::ArrayShape shape{10, 8};  // 2D
-    auto data = io_bench::BenchmarkRunner::generate_data(shape, 123);
+    io_bench::ArrayShape shape{10, 8, 4};  // 3D: 10×8×4
+    auto data = io_bench::BenchmarkRunner::generate_data(shape, 456);
     std::vector<float> read_buf(shape.total(), 0.0f);
 
-    auto path = std::filesystem::temp_directory_path() / "roundtrip_mmap.bin";
+    auto path = std::filesystem::temp_directory_path() / "roundtrip_mmap3d.bin";
     format.write(path.string(), data.data(), shape);
     format.read(path.string(), read_buf.data(), shape);
 
@@ -276,4 +276,21 @@ TEST_F(BenchmarkTest, MmapFormatWriteReadRoundTrip) {
     }
 
     std::filesystem::remove(path);
+}
+
+TEST_F(BenchmarkTest, RsfFormatWriteReadRoundTrip) {
+    io_bench::RsfFormat format;
+    io_bench::ArrayShape shape{12, 10, 3};  // 3D
+    auto data = io_bench::BenchmarkRunner::generate_data(shape, 789);
+    std::vector<float> read_buf(shape.total(), 0.0f);
+
+    auto path = std::filesystem::temp_directory_path() / "roundtrip_rsf.rsf";
+    format.write(path.string(), data.data(), shape);
+    format.read(path.string(), read_buf.data(), shape);
+
+    for (std::size_t i = 0; i < shape.total(); ++i) {
+        EXPECT_FLOAT_EQ(data[i], read_buf[i]) << "Mismatch at index " << i;
+    }
+
+    std::filesystem::remove_all(std::filesystem::temp_directory_path() / "roundtrip_rsf.rsf");
 }
