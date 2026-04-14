@@ -235,8 +235,7 @@ public:
 
 /// Calculate throughput
 inline double throughput_mbps(double size_mb, double seconds) {
-    if (seconds <= 0.0) { return 0.0;
-}
+    if (seconds <= 0.0) { return 0.0; }
     return size_mb / seconds;
 }
 
