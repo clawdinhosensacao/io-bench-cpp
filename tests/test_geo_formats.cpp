@@ -177,6 +177,21 @@ TEST_F(GeoFormatTest, SegdAndBinaryConsistency) {
     }
 }
 
+// --- SEG-Y (bulk round-trip) ---
+
+TEST_F(GeoFormatTest, SegyWriteRead2D) {
+    io_bench::SegyFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "SEG-Y not available";
+
+    auto path = temp_dir_ / "test.segy";
+    format.write(path.string(), data2d_.data(), shape2d_);
+    format.read(path.string(), read2d_.data(), shape2d_);
+
+    for (std::size_t i = 0; i < shape2d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data2d_[i], read2d_[i]) << "mismatch at index " << i;
+    }
+}
+
 // --- MiniSEED ---
 
 TEST_F(GeoFormatTest, MiniSeedAvailability) {
@@ -189,6 +204,34 @@ TEST_F(GeoFormatTest, MiniSeedAvailability) {
 TEST_F(GeoFormatTest, AsdfAvailability) {
     io_bench::AsdfFormat format;
     (void)format.is_available();
+}
+
+TEST_F(GeoFormatTest, AsdfWriteRead2D) {
+    io_bench::AsdfFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "ASDF not available";
+
+    auto path = temp_dir_ / "test.asdf";
+    format.write(path.string(), data2d_.data(), shape2d_);
+    format.read(path.string(), read2d_.data(), shape2d_);
+
+    for (std::size_t i = 0; i < shape2d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data2d_[i], read2d_[i]) << "mismatch at index " << i;
+    }
+}
+
+// --- TensorStore C++ ---
+
+TEST_F(GeoFormatTest, TensorStoreWriteRead2D) {
+    io_bench::TensorStoreFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "TensorStore not available";
+
+    auto path = temp_dir_ / "test.zarr";
+    format.write(path.string(), data2d_.data(), shape2d_);
+    format.read(path.string(), read2d_.data(), shape2d_);
+
+    for (std::size_t i = 0; i < shape2d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data2d_[i], read2d_[i]) << "mismatch at index " << i;
+    }
 }
 
 // --- MDIO ---
