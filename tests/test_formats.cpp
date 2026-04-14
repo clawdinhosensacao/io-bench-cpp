@@ -95,14 +95,79 @@ TEST_F(FormatTest, Hdf5Availability) {
     (void)format.is_available();
 }
 
+TEST_F(FormatTest, Hdf5WriteRead) {
+    io_bench::Hdf5Format format;
+    if (!format.is_available()) GTEST_SKIP() << "HDF5 not available";
+
+    auto path = temp_dir_ / "test.h5";
+    format.write(path.string(), data_.data(), shape_);
+    format.read(path.string(), read_buffer_.data(), shape_);
+
+    for (std::size_t i = 0; i < shape_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data_[i], read_buffer_[i]) << "mismatch at index " << i;
+    }
+}
+
 TEST_F(FormatTest, NetcdfAvailability) {
     io_bench::NetcdfFormat format;
     (void)format.is_available();
 }
 
+TEST_F(FormatTest, NetcdfWriteRead) {
+    io_bench::NetcdfFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "NetCDF not available";
+
+    auto path = temp_dir_ / "test.nc";
+    format.write(path.string(), data_.data(), shape_);
+    format.read(path.string(), read_buffer_.data(), shape_);
+
+    for (std::size_t i = 0; i < shape_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data_[i], read_buffer_[i]) << "mismatch at index " << i;
+    }
+}
+
 TEST_F(FormatTest, TileDBAvailability) {
     io_bench::TileDBFormat format;
     (void)format.is_available();
+}
+
+TEST_F(FormatTest, TileDBWriteRead) {
+    io_bench::TileDBFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "TileDB not available";
+
+    auto path = temp_dir_ / "test.tiledb";
+    format.write(path.string(), data_.data(), shape_);
+    format.read(path.string(), read_buffer_.data(), shape_);
+
+    for (std::size_t i = 0; i < shape_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data_[i], read_buffer_[i]) << "mismatch at index " << i;
+    }
+}
+
+TEST_F(FormatTest, ZarrWriteRead) {
+    io_bench::ZarrFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "Zarr not available";
+
+    auto path = temp_dir_ / "test.zarr";
+    format.write(path.string(), data_.data(), shape_);
+    format.read(path.string(), read_buffer_.data(), shape_);
+
+    for (std::size_t i = 0; i < shape_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data_[i], read_buffer_[i]) << "mismatch at index " << i;
+    }
+}
+
+TEST_F(FormatTest, ParquetWriteRead) {
+    io_bench::ParquetFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "Parquet not available";
+
+    auto path = temp_dir_ / "test.parquet";
+    format.write(path.string(), data_.data(), shape_);
+    format.read(path.string(), read_buffer_.data(), shape_);
+
+    for (std::size_t i = 0; i < shape_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data_[i], read_buffer_[i]) << "mismatch at index " << i;
+    }
 }
 
 TEST_F(FormatTest, Adios2Availability) {
