@@ -31,11 +31,11 @@ void ZarrFormat::write(const std::string& path, const float* data, const ArraySh
         ? json::array({shape.nz, shape.ny, shape.nx})
         : json::array({shape.nz, shape.nx});
     zarray["chunks"] = shape.ny > 1 
-        ? json::array({std::min(shape.nz, (std::size_t)64), 
-                       std::min(shape.ny, (std::size_t)64), 
-                       std::min(shape.nx, (std::size_t)64)})
-        : json::array({std::min(shape.nz, (std::size_t)64), 
-                       std::min(shape.nx, (std::size_t)64)});
+        ? json::array({std::min(shape.nz, static_cast<std::size_t>(64)), 
+                       std::min(shape.ny, static_cast<std::size_t>(64)), 
+                       std::min(shape.nx, static_cast<std::size_t>(64))})
+        : json::array({std::min(shape.nz, static_cast<std::size_t>(64)), 
+                       std::min(shape.nx, static_cast<std::size_t>(64))});
     zarray["dtype"] = "<f4";  // Little-endian float32
     zarray["compressor"] = nullptr;  // No compression
     zarray["fill_value"] = 0.0f;

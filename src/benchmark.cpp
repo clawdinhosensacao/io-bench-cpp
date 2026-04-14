@@ -394,7 +394,7 @@ TraceReadResult BenchmarkRunner::run_trace_read(FormatAdapter& adapter) {
     }
     result.available = true;
 
-    const ArrayShape shape{config_.nx, config_.nz, config_.ny};
+    const ArrayShape shape{.nx=config_.nx, .nz=config_.nz, .ny=config_.ny};
     const std::size_t num_traces = shape.nx * shape.ny;
     const std::size_t samples_per_trace = shape.nz;
     const double trace_size_kb = static_cast<double>(samples_per_trace * sizeof(float)) / 1024.0;
@@ -433,7 +433,7 @@ TraceReadResult BenchmarkRunner::run_trace_read(FormatAdapter& adapter) {
             std::vector<std::size_t> trace_indices(random_count);
             // Pseudo-random trace selection (deterministic seed)
             for (std::size_t i = 0; i < random_count; ++i) {
-                trace_indices[i] = (i * 7919 + 1) % num_traces;
+                trace_indices[i] = ((i * 7919) + 1) % num_traces;
             }
             std::vector<float> trace_buf(samples_per_trace);
             Timer timer;
@@ -477,7 +477,7 @@ StreamWriteResult BenchmarkRunner::run_stream_write(FormatAdapter& adapter) {
     }
     result.available = true;
 
-    const ArrayShape shape{config_.nx, config_.nz, config_.ny};
+    const ArrayShape shape{.nx=config_.nx, .nz=config_.nz, .ny=config_.ny};
     const std::size_t num_traces = shape.nx * shape.ny;
     const std::size_t samples_per_trace = shape.nz;
     const double trace_size_kb = static_cast<double>(samples_per_trace * sizeof(float)) / 1024.0;
@@ -555,7 +555,7 @@ CheckpointResult BenchmarkRunner::run_checkpoint(FormatAdapter& adapter) {
     }
     result.available = true;
 
-    const ArrayShape shape{config_.nx, config_.nz, config_.ny};
+    const ArrayShape shape{.nx=config_.nx, .nz=config_.nz, .ny=config_.ny};
 
     try {
         // Generate data
@@ -590,7 +590,7 @@ CheckpointResult BenchmarkRunner::run_checkpoint(FormatAdapter& adapter) {
         bool ok = true;
         for (std::size_t i = 0; i < shape.total(); ++i) {
             double err = std::abs(static_cast<double>(data[i]) - static_cast<double>(read_data[i]));
-            if (err > max_err) { max_err = err; }
+            max_err = std::max(max_err, err);
             // Allow small floating-point differences from format conversions
             if (err > 1e-3) { ok = false; }
         }
@@ -629,7 +629,7 @@ CompressionSweepResult BenchmarkRunner::run_compression_sweep(const std::string&
         }
     }
 
-    if (!adapter) {
+    if (adapter == nullptr) {
         result.error = "Format not found: " + format_name;
         return result;
     }
@@ -646,7 +646,7 @@ CompressionSweepResult BenchmarkRunner::run_compression_sweep(const std::string&
     }
 
     result.compressor = adapter->compressor_name();
-    const ArrayShape shape{config_.nx, config_.nz, config_.ny};
+    const ArrayShape shape{.nx=config_.nx, .nz=config_.nz, .ny=config_.ny};
     result.raw_data_mb = shape.mb();
 
     // Generate data once
