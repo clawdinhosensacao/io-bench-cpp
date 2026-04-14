@@ -6,7 +6,7 @@ JSON_DIR = third_party/json
 CNPY_DIR = third_party/cnpy
 GTEST_DIR = third_party/googletest
 
-.PHONY: all clean test bench fetch-deps
+.PHONY: all clean test bench bench-fast run minimal fetch-deps install-deps-ubuntu install-deps-macos
 
 all: build/io_bench
 
@@ -66,6 +66,25 @@ bench-fast: build/io_bench
 
 clean:
 	rm -rf build artifacts
+
+# Minimal build (no optional deps, no TensorStore — fastest compile)
+minimal: build fetch-deps
+	$(CXX) $(CXXFLAGS) -DNO_OPTIONAL_DEPS $(SRCS) src/main.cpp -lz -o build/io_bench
+
+# Quick run with small grid
+run: build/io_bench
+	./build/io_bench --nx 50 --nz 40
+
+# Install dependencies — Ubuntu/Debian
+install-deps-ubuntu:
+	sudo apt-get update
+	sudo apt-get install -y libhdf5-dev libnetcdf-cxx4-dev libtiledb-dev libz-dev
+	pip install segyio zarr tensorstore mdio-python obspy pyasdf
+
+# Install dependencies — macOS
+install-deps-macos:
+	brew install hdf5 netcdf tiledb zlib
+	pip install segyio zarr tensorstore mdio-python obspy pyasdf
 
 # Optional format support detection (linuxbrew paths)
 HDF5_PREFIX := /home/linuxbrew/.linuxbrew
