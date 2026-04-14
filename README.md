@@ -16,7 +16,7 @@ A comprehensive I/O format benchmark for scientific computing arrays, implemente
 | `npy` | ✅ Always | Native C++ | ✗ | ✓ | ✗ | ✗ | NumPy native format via cnpy |
 | `json` | ✅ Always | Native C++ | ✗ | ✓ | ✗ | ✗ | JSON 2D array (nlohmann/json) |
 | `hdf5` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | HDF5 via HighFive |
-| `netcdf` | ✅ Optional | Native C++ | ✗ | ✗ | ✗ | ✗ | NetCDF4 C++ |
+| `netcdf` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | NetCDF4 C++ |
 | `parquet` | ✅ Optional | Native C++ | ✗ | ✗ | ✗ | ✗ | Apache Parquet via Arrow |
 | `tiledb` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | TileDB dense array |
 | `zarr` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | Zarr v2 via native chunked binary + JSON |

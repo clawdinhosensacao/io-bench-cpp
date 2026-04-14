@@ -85,4 +85,36 @@ void NetcdfFormat::read(const std::string& path, float* data, const ArrayShape& 
 #endif
 }
 
+void NetcdfFormat::read_slice(const std::string& path, float* slice_buf,
+                                const ArrayShape& shape, std::size_t iy) {
+#ifdef HAVE_NETCDF
+    int ncid, varid;
+
+    if (nc_open(path.c_str(), NC_NOWRITE, &ncid) != NC_NOERR) {
+        throw std::runtime_error("Failed to open NetCDF file: " + path);
+    }
+
+    nc_inq_varid(ncid, "velocity", &varid);
+
+    // NetCDF variable layout: (y, z, x) for 3D
+    // Read one inline: start at [iy, 0, 0], count [1, nz, nx]
+    size_t start[3] = {iy, 0, 0};
+    size_t count[3] = {1, shape.nz, shape.nx};
+    ptrdiff_t stride[3] = {1, 1, 1};
+
+    int err = nc_get_vara_float(ncid, varid, start, count, slice_buf);
+    nc_close(ncid);
+
+    if (err != NC_NOERR) {
+        throw std::runtime_error("NetCDF slice read failed");
+    }
+#else
+    (void)path;
+    (void)slice_buf;
+    (void)shape;
+    (void)iy;
+    throw std::runtime_error("NetCDF support not compiled in");
+#endif
+}
+
 } // namespace io_bench

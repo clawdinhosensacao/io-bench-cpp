@@ -366,6 +366,30 @@ TEST_F(GeoFormatTest, TileDBSliceRead) {
     }
 }
 
+TEST_F(GeoFormatTest, NetcdfSliceRead) {
+    io_bench::NetcdfFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "NetCDF not available";
+    ASSERT_TRUE(format.supports_slice_read());
+
+    auto path = temp_dir_ / "slice_test.nc";
+    format.write(path.string(), data3d_.data(), shape3d_);
+
+    // Full read to get reference data
+    std::vector<float> full_buf(shape3d_.total());
+    format.read(path.string(), full_buf.data(), shape3d_);
+
+    const std::size_t iy = 1;
+    const std::size_t slice_elements = shape3d_.nx * shape3d_.nz;
+    std::vector<float> slice_buf(slice_elements);
+    format.read_slice(path.string(), slice_buf.data(), shape3d_, iy);
+
+    // NetCDF layout: (y, z, x) — iy-th inline is contiguous at offset iy * nz * nx
+    for (std::size_t i = 0; i < slice_elements; ++i) {
+        EXPECT_FLOAT_EQ(full_buf[iy * slice_elements + i], slice_buf[i])
+            << "slice mismatch at " << i;
+    }
+}
+
 TEST_F(GeoFormatTest, DuckDBSliceRead) {
     io_bench::DuckDBFormat format;
     if (!format.is_available()) GTEST_SKIP() << "DuckDB not available";
