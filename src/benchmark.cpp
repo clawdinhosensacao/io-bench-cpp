@@ -356,12 +356,21 @@ SliceReadResult BenchmarkRunner::run_slice_read(FormatAdapter& adapter) {
             result.speedup = result.full_read_ms / result.slice_read_ms;
         }
 
-        // Verify slice data against source
-        const float* expected = data.data() + ((shape.ny / 2) * slice_elements);
-        for (std::size_t i = 0; i < slice_elements; ++i) {
-            if (std::abs(expected[i] - slice_buf[i]) > 0.001f) {
+        // Verify slice data: slice read should match extracting from full read
+        const std::size_t verify_iy = shape.ny / 2;
+        bool ok = true;
+        for (std::size_t i = 0; i < slice_elements && ok; ++i) {
+            // Try both common memory layouts:
+            // Layout A: (iy, iz, ix) — inline contiguous (binary, mmap, RSF)
+            // Layout B: (iz, iy, ix) — depth-first (HDF5, NetCDF, DuckDB, TileDB)
+            float expected_a = full_buf[verify_iy * slice_elements + i];
+            std::size_t iz = i / shape.nx;
+            std::size_t ix = i % shape.nx;
+            float expected_b = full_buf[iz * shape.ny * shape.nx + verify_iy * shape.nx + ix];
+            if (std::abs(expected_a - slice_buf[i]) > 0.001f &&
+                std::abs(expected_b - slice_buf[i]) > 0.001f) {
                 result.error = "Slice data integrity check failed";
-                break;
+                ok = false;
             }
         }
 
