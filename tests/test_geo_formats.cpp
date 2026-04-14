@@ -397,6 +397,35 @@ TEST_F(GeoFormatTest, DuckDBSliceRead) {
     }
 }
 
+TEST_F(GeoFormatTest, ZarrSliceRead) {
+    io_bench::ZarrFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "Zarr not available";
+    ASSERT_TRUE(format.supports_slice_read());
+
+    auto path = temp_dir_ / "slice_test.zarr";
+    format.write(path.string(), data3d_.data(), shape3d_);
+
+    // Full read to get reference data
+    std::vector<float> full_buf(shape3d_.total());
+    format.read(path.string(), full_buf.data(), shape3d_);
+
+    // Slice read
+    const std::size_t iy = 1;
+    const std::size_t slice_elements = shape3d_.nx * shape3d_.nz;
+    std::vector<float> slice_buf(slice_elements);
+    format.read_slice(path.string(), slice_buf.data(), shape3d_, iy);
+
+    // Compare: Zarr layout is (iz, iy, ix) in C-order
+    for (std::size_t iz = 0; iz < shape3d_.nz; ++iz) {
+        for (std::size_t ix = 0; ix < shape3d_.nx; ++ix) {
+            std::size_t full_idx = iz * shape3d_.ny * shape3d_.nx + iy * shape3d_.nx + ix;
+            std::size_t slice_idx = iz * shape3d_.nx + ix;
+            EXPECT_FLOAT_EQ(full_buf[full_idx], slice_buf[slice_idx])
+                << "mismatch at iz=" << iz << " ix=" << ix;
+        }
+    }
+}
+
 // --- Direct I/O Tests ---
 
 TEST_F(GeoFormatTest, DirectIOAvailability) {

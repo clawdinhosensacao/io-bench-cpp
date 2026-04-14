@@ -182,4 +182,85 @@ void ZarrFormat::read(const std::string& path, float* data, const ArrayShape& sh
     }
 }
 
+void ZarrFormat::read_slice(const std::string& path, float* slice_buf,
+                              const ArrayShape& shape, std::size_t iy) {
+    fs::path zarr_path(path);
+
+    // Read .zarray metadata
+    std::ifstream meta_in(zarr_path / ".zarray");
+    if (!meta_in) {
+        throw std::runtime_error("Zarr: Cannot open .zarray metadata: " + path);
+    }
+
+    json zarray;
+    meta_in >> zarray;
+    meta_in.close();
+
+    // Get chunk sizes
+    auto chunks = zarray["chunks"];
+    std::size_t chunk_nz = chunks[0].get<std::size_t>();
+    std::size_t chunk_ny = shape.ny > 1 ? chunks[1].get<std::size_t>() : 1;
+    std::size_t chunk_nx = shape.ny > 1 ? chunks[2].get<std::size_t>() : chunks[1].get<std::size_t>();
+
+    // Determine which chunk row contains iy
+    std::size_t cy_target = iy / chunk_ny;
+    std::size_t local_iy = iy % chunk_ny;  // offset within the chunk
+
+    std::size_t n_chunks_z = (shape.nz + chunk_nz - 1) / chunk_nz;
+    std::size_t n_chunks_x = (shape.nx + chunk_nx - 1) / chunk_nx;
+
+    // Read only the chunks in cy_target row
+    for (std::size_t cz = 0; cz < n_chunks_z; ++cz) {
+        for (std::size_t cx = 0; cx < n_chunks_x; ++cx) {
+            // Build chunk filename
+            std::ostringstream chunk_name;
+            if (shape.is_3d()) {
+                chunk_name << cz << "/" << cy_target << "/" << cx;
+            } else {
+                chunk_name << cz << "/" << cx;
+            }
+
+            fs::path chunk_path = zarr_path / chunk_name.str();
+
+            if (!fs::exists(chunk_path)) {
+                continue;  // fill_value = 0, skip
+            }
+
+            // Calculate actual chunk dimensions
+            std::size_t start_z = cz * chunk_nz;
+            std::size_t start_y = cy_target * chunk_ny;
+            std::size_t start_x = cx * chunk_nx;
+
+            std::size_t actual_nz = std::min(chunk_nz, shape.nz - start_z);
+            std::size_t actual_ny = std::min(chunk_ny, shape.ny - start_y);
+            std::size_t actual_nx = std::min(chunk_nx, shape.nx - start_x);
+
+            // Read the full chunk, then extract only the iy row
+            std::ifstream chunk_in(chunk_path, std::ios::binary);
+            std::vector<float> chunk_data(actual_nz * actual_ny * actual_nx);
+            chunk_in.read(reinterpret_cast<char*>(chunk_data.data()),
+                          to_ss(chunk_data.size() * sizeof(float)));
+            chunk_in.close();
+
+            // Extract only the local_iy row from the chunk
+            for (std::size_t iz = 0; iz < actual_nz; ++iz) {
+                for (std::size_t ix = 0; ix < actual_nx; ++ix) {
+                    std::size_t global_z = start_z + iz;
+                    std::size_t global_x = start_x + ix;
+
+                    // Chunk data layout: (iz, iy_local, ix) — row-major
+                    std::size_t chunk_idx = (iz * actual_ny * actual_nx) + (local_iy * actual_nx) + ix;
+
+                    // Slice buffer layout: (iz, ix) — row-major
+                    std::size_t slice_idx = global_z * shape.nx + global_x;
+
+                    if (local_iy < actual_ny && slice_idx < shape.nx * shape.nz) {
+                        slice_buf[slice_idx] = chunk_data[chunk_idx];
+                    }
+                }
+            }
+        }
+    }
+}
+
 } // namespace io_bench

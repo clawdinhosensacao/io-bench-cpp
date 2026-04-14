@@ -110,7 +110,7 @@ public:
                     const ArrayShape& shape, std::size_t iy) override;
 };
 
-/// Zarr format (placeholder)
+/// Zarr format (native C++ chunked binary + JSON metadata)
 class ZarrFormat : public FormatAdapter {
 public:
     [[nodiscard]] std::string name() const override { return "zarr"; }
@@ -119,6 +119,9 @@ public:
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".zarr"; }
     [[nodiscard]] bool is_thread_safe() const override { return false; }
+    [[nodiscard]] bool supports_slice_read() const override { return true; }
+    void read_slice(const std::string& path, float* slice_buf,
+                    const ArrayShape& shape, std::size_t iy) override;
 };
 
 /// Parquet format (placeholder)

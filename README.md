@@ -17,9 +17,9 @@ A comprehensive I/O format benchmark for scientific computing arrays, implemente
 | `json` | ✅ Always | Native C++ | ✗ | ✓ | ✗ | ✗ | JSON 2D array (nlohmann/json) |
 | `hdf5` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | HDF5 via HighFive |
 | `netcdf` | ✅ Optional | Native C++ | ✗ | ✗ | ✗ | ✗ | NetCDF4 C++ |
-| `parquet` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | Apache Parquet via Arrow |
+| `parquet` | ✅ Optional | Native C++ | ✗ | ✗ | ✗ | ✗ | Apache Parquet via Arrow |
 | `tiledb` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | TileDB dense array |
-| `zarr` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | Zarr v2 via Python |
+| `zarr` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | Zarr v2 via native chunked binary + JSON |
 | `duckdb` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | DuckDB columnar SQL engine |
 | `mdio` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | MDIO for seismic |
 | `miniseed` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | MiniSEED via obspy |
@@ -150,7 +150,8 @@ Options:
 - **TensorStore C++**: ~2905 MB/s read, 229 MB/s write (zarr+blosc)
 - **RSF**: 800–5000 MB/s (native C++, direct seek)
 - **HDF5**: 150–200 MB/s
-- **Zarr/MDIO**: 50–100 MB/s (Python bridge overhead)
+- **Zarr**: 50–100 MB/s (native C++, chunked filesystem)
+- **MDIO**: 50–100 MB/s (Python bridge overhead)
 
 ### Slice Read Efficiency (3D volume)
 - **Native slice (binary, mmap, RSF, TensorStore)**: ~196x speedup vs full volume read
