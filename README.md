@@ -15,12 +15,12 @@ A comprehensive I/O format benchmark for scientific computing arrays, implemente
 | `segy` | ✅ Always | Native C++ | ✗ | ✗ | ✓ | ✓ | SEG-Y seismic format |
 | `npy` | ✅ Always | Native C++ | ✗ | ✓ | ✗ | ✗ | NumPy native format via cnpy |
 | `json` | ✅ Always | Native C++ | ✗ | ✓ | ✗ | ✗ | JSON 2D array (nlohmann/json) |
-| `hdf5` | ✅ Optional | Native C++ | ✗ | ✗ | ✗ | ✗ | HDF5 via HighFive |
+| `hdf5` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | HDF5 via HighFive |
 | `netcdf` | ✅ Optional | Native C++ | ✗ | ✗ | ✗ | ✗ | NetCDF4 C++ |
 | `parquet` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | Apache Parquet via Arrow |
-| `tiledb` | ✅ Optional | Native C++ | ✗ | ✗ | ✗ | ✗ | TileDB dense array |
+| `tiledb` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | TileDB dense array |
 | `zarr` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | Zarr v2 via Python |
-| `duckdb` | ✅ Optional | Native C++ | ✗ | ✗ | ✗ | ✗ | DuckDB columnar SQL engine |
+| `duckdb` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | DuckDB columnar SQL engine |
 | `mdio` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | MDIO for seismic |
 | `miniseed` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | MiniSEED via obspy |
 | `asdf` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | ASDF via pyasdf |

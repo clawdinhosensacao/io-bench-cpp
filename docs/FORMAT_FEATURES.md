@@ -29,7 +29,7 @@ focusing on capabilities relevant to **geophysics and seismic processing** workf
 | rsf | ❌ | ❌ | ❌ | ✅ mmap | ✅ text header | ❌ | ❌ | ✅ n1-n6 | ✅ offset | Madagascar |
 | npy | ❌ | ❌ | ❌ | ✅ mmap | ✅ header | ❌ | ❌ | ✅ shape | ✅ offset | NumPy |
 | json | ❌ | ❌ | ❌ | ❌ | ✅ self-describing | ❌ | ❌ | ❌ | ❌ | Universal |
-| hdf5 | ✅ chunks | ✅ gzip/szip/zstd | ✅ MPI-IO | ✅ mmap | ✅ rich | ✅ append | ✅ VFD/S3 | ✅ unlimited | ✅ Wide |
+| hdf5 | ✅ chunks | ✅ gzip/szip/zstd | ✅ MPI-IO | ✅ mmap | ✅ rich | ✅ append | ✅ VFD/S3 | ✅ unlimited | ✅ hyperslab | ✅ Wide |
 | netcdf | ✅ chunks | ✅ zlib/zstd | ✅ pnetcdf | ✅ mmap | ✅ CF conventions | ✅ append | ✅ S3 | ✅ unlimited | ✅ slicing | ✅ Wide |
 | segy | ❌ trace-based | ❌ | ❌ | ✅ mmap | ✅ trace headers | ✅ append | ❌ | ❌ 2D traces | ✅ trace # | ✅ Industry std |
 | segd | ❌ record-based | ❌ | ❌ | ✅ mmap | ✅ record headers | ✅ append | ❌ | ❌ | ✅ record # | ✅ Acquisition |

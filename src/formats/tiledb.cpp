@@ -187,4 +187,62 @@ void TileDBFormat::read(const std::string& path, float* data, const ArrayShape& 
 #endif
 }
 
+void TileDBFormat::read_slice(const std::string& path, float* slice_buf,
+                                const ArrayShape& shape, std::size_t iy) {
+#ifdef HAVE_TILEDB
+    tiledb_ctx_t* ctx = nullptr;
+    tiledb_ctx_alloc(nullptr, &ctx);
+
+    // Open array for reading
+    tiledb_array_t* array = nullptr;
+    tiledb_array_alloc(ctx, path.c_str(), &array);
+    tiledb_array_open(ctx, array, TILEDB_READ);
+
+    // Create subarray selecting only one inline (iy-th slice)
+    // Domain layout: y (slowest), z, x (fastest)
+    tiledb_subarray_t* subarray = nullptr;
+    tiledb_subarray_alloc(ctx, array, &subarray);
+
+    int64_t iy_val = static_cast<int64_t>(iy);
+    int64_t z_start = 0;
+    int64_t z_end = static_cast<int64_t>(shape.nz - 1);
+    int64_t x_start = 0;
+    int64_t x_end = static_cast<int64_t>(shape.nx - 1);
+
+    // Dimension 0 = y, Dimension 1 = z, Dimension 2 = x
+    tiledb_subarray_add_range(ctx, subarray, 0, &iy_val, &iy_val, nullptr);
+    tiledb_subarray_add_range(ctx, subarray, 1, &z_start, &z_end, nullptr);
+    tiledb_subarray_add_range(ctx, subarray, 2, &x_start, &x_end, nullptr);
+
+    // Create query
+    tiledb_query_t* query = nullptr;
+    tiledb_query_alloc(ctx, array, TILEDB_READ, &query);
+    tiledb_query_set_layout(ctx, query, TILEDB_ROW_MAJOR);
+    tiledb_query_set_subarray_t(ctx, query, subarray);
+
+    // Set data buffer — only nx * nz elements for one inline
+    uint64_t size = static_cast<uint64_t>(shape.nx * shape.nz) * sizeof(float);
+    tiledb_query_set_data_buffer(ctx, query, "velocity", slice_buf, &size);
+
+    // Submit query
+    tiledb_query_submit(ctx, query);
+    tiledb_query_finalize(ctx, query);
+
+    // Close array
+    tiledb_array_close(ctx, array);
+
+    // Cleanup
+    tiledb_subarray_free(&subarray);
+    tiledb_query_free(&query);
+    tiledb_array_free(&array);
+    tiledb_ctx_free(&ctx);
+#else
+    (void)path;
+    (void)slice_buf;
+    (void)shape;
+    (void)iy;
+    throw std::runtime_error("TileDB support not compiled in");
+#endif
+}
+
 } // namespace io_bench
