@@ -32,7 +32,7 @@ void RsfFormat::write(const std::string& path, const float* data, const ArraySha
     {
         std::ofstream f(data_path, std::ios::binary);
         if (!f) { throw std::runtime_error("RSF: cannot write data file: " + data_path); }
-        f.write(reinterpret_cast<const char*>(data), shape.bytes());
+        f.write(reinterpret_cast<const char*>(data), to_ss(shape.bytes()));
     }
 
     // Write text header
@@ -76,7 +76,7 @@ void RsfFormat::read(const std::string& path, float* data, const ArrayShape& sha
     }
 
     df.seekg(0);
-    df.read(reinterpret_cast<char*>(data), shape.bytes());
+    df.read(reinterpret_cast<char*>(data), to_ss(shape.bytes()));
 }
 
 void RsfFormat::read_slice(const std::string& path, float* slice_buf,
@@ -90,7 +90,7 @@ void RsfFormat::read_slice(const std::string& path, float* slice_buf,
         throw std::runtime_error("RSF: cannot read data file for slice: " + data_path);
     }
     df.seekg(static_cast<std::streamoff>(offset));
-    df.read(reinterpret_cast<char*>(slice_buf), slice_elements * sizeof(float));
+    df.read(reinterpret_cast<char*>(slice_buf), to_ss(slice_elements * sizeof(float)));
 }
 
 } // namespace io_bench

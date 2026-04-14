@@ -139,7 +139,7 @@ void SegDFormat::read(const std::string& path, float* data, const ArrayShape& sh
         }
         // Skip remaining samples if num_samples > shape.nx
         if (num_samples > shape.nx) {
-            f.seekg(static_cast<std::streamsize>((num_samples - shape.nx)) * sizeof(float), std::ios::cur);
+            f.seekg(to_ss(static_cast<std::size_t>(num_samples - shape.nx) * sizeof(float)), std::ios::cur);
         }
     }
 }

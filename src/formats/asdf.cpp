@@ -38,7 +38,7 @@ void AsdfFormat::write(const std::string& path, const float* data, const ArraySh
     {
         std::ofstream f(tmp_bin, std::ios::binary);
         if (!f) { throw std::runtime_error("ASDF: cannot write temp binary"); }
-        f.write(reinterpret_cast<const char*>(data), shape.bytes());
+        f.write(reinterpret_cast<const char*>(data), to_ss(shape.bytes()));
     }
 
     // Python script: read binary → obspy Trace → pyasdf ASDF file
@@ -126,7 +126,7 @@ void AsdfFormat::read(const std::string& path, float* data, const ArrayShape& sh
                                      std::to_string(size) + ")");
         }
         f.seekg(0);
-        f.read(reinterpret_cast<char*>(data), shape.bytes());
+        f.read(reinterpret_cast<char*>(data), to_ss(shape.bytes()));
     }
 
     std::remove(tmp_bin.c_str());

@@ -90,8 +90,8 @@ BenchResult BenchmarkRunner::run_single(FormatAdapter& adapter) {
         }
         
         // Average times
-        result.write_ms = total_write_ms / config_.iterations;
-        result.read_ms = total_read_ms / config_.iterations;
+        result.write_ms = total_write_ms / static_cast<double>(config_.iterations);
+        result.read_ms = total_read_ms / static_cast<double>(config_.iterations);
         
         // Calculate throughput
         double write_s = result.write_ms / 1000.0;

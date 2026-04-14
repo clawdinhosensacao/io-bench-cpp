@@ -18,7 +18,7 @@ void BinaryFormat::write(const std::string& path, const float* data, const Array
     if (!file) {
         throw std::runtime_error("Cannot open file for writing: " + path);
     }
-    file.write(reinterpret_cast<const char*>(data), shape.bytes());
+    file.write(reinterpret_cast<const char*>(data), to_ss(shape.bytes()));
 }
 
 void BinaryFormat::read(const std::string& path, float* data, const ArrayShape& shape) {
@@ -26,7 +26,7 @@ void BinaryFormat::read(const std::string& path, float* data, const ArrayShape& 
     if (!file) {
         throw std::runtime_error("Cannot open file for reading: " + path);
     }
-    file.read(reinterpret_cast<char*>(data), shape.bytes());
+    file.read(reinterpret_cast<char*>(data), to_ss(shape.bytes()));
 }
 
 void BinaryFormat::read_slice(const std::string& path, float* slice_buf,
@@ -40,7 +40,7 @@ void BinaryFormat::read_slice(const std::string& path, float* slice_buf,
         throw std::runtime_error("Cannot open file for slice read: " + path);
     }
     file.seekg(static_cast<std::streamoff>(offset));
-    file.read(reinterpret_cast<char*>(slice_buf), slice_elements * sizeof(float));
+    file.read(reinterpret_cast<char*>(slice_buf), to_ss(slice_elements * sizeof(float)));
 }
 
 // Binary with header: [magic][nx][nz][data]
@@ -61,7 +61,7 @@ void BinaryHeaderFormat::write(const std::string& path, const float* data, const
     file.write(reinterpret_cast<const char*>(&nz), sizeof(nz));
     file.write(reinterpret_cast<const char*>(&ny), sizeof(ny));
     // Write data
-    file.write(reinterpret_cast<const char*>(data), shape.bytes());
+    file.write(reinterpret_cast<const char*>(data), to_ss(shape.bytes()));
 }
 
 void BinaryHeaderFormat::read(const std::string& path, float* data, const ArrayShape& shape) {
@@ -85,7 +85,7 @@ void BinaryHeaderFormat::read(const std::string& path, float* data, const ArrayS
         throw std::runtime_error("Shape mismatch in binary header");
     }
     // Read data
-    file.read(reinterpret_cast<char*>(data), shape.bytes());
+    file.read(reinterpret_cast<char*>(data), to_ss(shape.bytes()));
 }
 
 void MmapFormat::write(const std::string& path, const float* data, const ArrayShape& shape) {
@@ -94,7 +94,7 @@ void MmapFormat::write(const std::string& path, const float* data, const ArraySh
     if (!file) {
         throw std::runtime_error("Cannot open file for writing: " + path);
     }
-    file.write(reinterpret_cast<const char*>(data), shape.bytes());
+    file.write(reinterpret_cast<const char*>(data), to_ss(shape.bytes()));
 }
 
 void MmapFormat::read(const std::string& path, float* data, const ArrayShape& shape) {
@@ -121,7 +121,7 @@ void MmapFormat::read(const std::string& path, float* data, const ArrayShape& sh
     if (!file) {
         throw std::runtime_error("Cannot open file for reading: " + path);
     }
-    file.read(reinterpret_cast<char*>(data), shape.bytes());
+    file.read(reinterpret_cast<char*>(data), to_ss(shape.bytes()));
 #endif
 }
 
@@ -162,7 +162,7 @@ void MmapFormat::read_slice(const std::string& path, float* slice_buf,
     const std::size_t slice_elements = shape.nx * shape.nz;
     const std::size_t offset = iy * slice_elements * sizeof(float);
     file.seekg(static_cast<std::streamoff>(offset));
-    file.read(reinterpret_cast<char*>(slice_buf), slice_elements * sizeof(float));
+    file.read(reinterpret_cast<char*>(slice_buf), to_ss(slice_elements * sizeof(float)));
 #endif
 }
 

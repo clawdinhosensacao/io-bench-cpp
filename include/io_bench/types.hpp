@@ -227,6 +227,12 @@ public:
     }
 };
 
+/// Cast size_t to std::streamsize for fstream::write/read calls
+/// (avoids -Wsign-conversion warnings on size_t → streamsize)
+[[nodiscard]] inline std::streamsize to_ss(std::size_t n) noexcept {
+    return static_cast<std::streamsize>(n);
+}
+
 /// Calculate throughput
 inline double throughput_mbps(double size_mb, double seconds) {
     if (seconds <= 0.0) { return 0.0;

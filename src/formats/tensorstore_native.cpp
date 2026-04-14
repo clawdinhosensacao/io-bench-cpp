@@ -210,7 +210,7 @@ void TensorStoreFormat::write(const std::string& path, const float* data, const 
     {
         std::ofstream f(tmp_bin, std::ios::binary);
         if (!f) { throw std::runtime_error("TensorStore: cannot write temp binary"); }
-        f.write(reinterpret_cast<const char*>(data), shape.bytes());
+        f.write(reinterpret_cast<const char*>(data), to_ss(shape.bytes()));
     }
 
     std::ostringstream script;
@@ -287,7 +287,7 @@ void TensorStoreFormat::read(const std::string& path, float* data, const ArraySh
             throw std::runtime_error("TensorStore: temp binary size mismatch");
         }
         f.seekg(0);
-        f.read(reinterpret_cast<char*>(data), shape.bytes());
+        f.read(reinterpret_cast<char*>(data), to_ss(shape.bytes()));
     }
 
     std::remove(tmp_bin.c_str());
@@ -306,7 +306,7 @@ void TensorStoreFormat::write_compressed(const std::string& path, const float* d
     {
         std::ofstream f(tmp_bin, std::ios::binary);
         if (!f) { throw std::runtime_error("TensorStore: cannot write temp binary"); }
-        f.write(reinterpret_cast<const char*>(data), shape.bytes());
+        f.write(reinterpret_cast<const char*>(data), to_ss(shape.bytes()));
     }
 
     std::ostringstream script;
