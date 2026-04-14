@@ -3,12 +3,95 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <vector>
+
+#ifdef HAVE_LIBMSEED
+#include <libmseed.h>
+#endif
 
 namespace io_bench {
+
+// --- Native C++ implementation via libmseed ---
+
+#ifdef HAVE_LIBMSEED
+
+std::string MiniSeedFormat::name() const { return "miniseed"; }
+
+bool MiniSeedFormat::is_available() const { return true; }
+
+void MiniSeedFormat::write(const std::string& path, const float* data, const ArrayShape& shape) {
+    // Create MS3Record for writing
+    MS3Record* msr = msr3_init(nullptr);
+    if (msr == nullptr) {
+        throw std::runtime_error("MiniSEED: msr3_init failed");
+    }
+
+    // Set metadata
+    msr->reclen = 4096;
+    msr->encoding = DE_FLOAT32;
+    msr->formatversion = 3;  // MiniSEED v3 (simpler than v2)
+    strncpy(msr->sid, "FDSN:XX_BENCH__BHZ", sizeof(msr->sid) - 1);
+    msr->starttime = ms_time2nstime(2024, 1, 0, 0, 0, 0);
+    msr->samprate = 100.0;
+
+    // MiniSEED stores 1D time-series; flatten the array
+    const std::size_t total = shape.total();
+    msr->datasamples = const_cast<void*>(static_cast<const void*>(data));
+    msr->numsamples = static_cast<uint64_t>(total);
+    msr->sampletype = 'f';
+
+    // Write directly to file
+    int64_t packed = msr3_writemseed(msr, path.c_str(), 1, MSF_FLUSHDATA, 0);
+
+    msr->datasamples = nullptr;  // Don't let msr3_free free our data
+    msr3_free(&msr);
+
+    if (packed < 0) {
+        throw std::runtime_error("MiniSEED: msr3_writemseed failed");
+    }
+}
+
+void MiniSeedFormat::read(const std::string& path, float* data, const ArrayShape& shape) {
+    // Read entire file as trace list, unpacking data samples
+    MS3TraceList* mstl = nullptr;
+    ms3_readtracelist(&mstl, path.c_str(), nullptr, 0, MSF_UNPACKDATA, 0);
+    if (mstl == nullptr) {
+        throw std::runtime_error("MiniSEED: ms3_readtracelist failed for " + path);
+    }
+
+    // Unpack all trace segments and copy to output
+    std::size_t out_idx = 0;
+    MS3TraceID* id = mstl->traces.next[0];  // Skip list head
+    while (id != nullptr) {
+        MS3TraceSeg* seg = id->first;
+        while (seg != nullptr) {
+            // Convert samples to float if needed
+            mstl3_convertsamples(seg, 'f', 0);
+
+            // Copy data
+            const float* seg_data = static_cast<const float*>(seg->datasamples);
+            for (int64_t i = 0; i < seg->numsamples && out_idx < shape.total(); ++i) {
+                data[out_idx++] = seg_data[i];
+            }
+            seg = seg->next;
+        }
+        id = id->next[0];
+    }
+
+    mstl3_free(&mstl, 0);
+
+    if (out_idx != shape.total()) {
+        throw std::runtime_error("MiniSEED: sample count mismatch (expected " +
+            std::to_string(shape.total()) + ", got " + std::to_string(out_idx) + ")");
+    }
+}
+
+#else  // !HAVE_LIBMSEED — Python/obspy bridge fallback
 
 static std::string mseed_python() {
     return find_python_with_module("obspy");
@@ -26,6 +109,8 @@ static std::string write_temp_script(const std::string& content, const std::stri
     f.close();
     return tmp_path;
 }
+
+std::string MiniSeedFormat::name() const { return "miniseed"; }
 
 bool MiniSeedFormat::is_available() const {
     return check_obspy_python();
@@ -122,5 +207,7 @@ void MiniSeedFormat::read(const std::string& path, float* data, const ArrayShape
     std::remove(tmp_bin.c_str());
     std::remove(script_path.c_str());
 }
+
+#endif  // HAVE_LIBMSEED
 
 } // namespace io_bench

@@ -22,7 +22,7 @@ A comprehensive I/O format benchmark for scientific computing arrays, implemente
 | `zarr` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | Zarr v2 via native chunked binary + JSON |
 | `duckdb` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | DuckDB columnar SQL engine |
 | `mdio` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | MDIO for seismic |
-| `miniseed` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | MiniSEED via obspy |
+| `miniseed` | ✅ Optional | Native C++ | ✗ | ✗ | ✗ | ✗ | MiniSEED via libmseed |
 | `asdf` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | ASDF via pyasdf |
 | `tensorstore` | ✅ Optional | Native C++ | ✓ | ✓ | ✗ | ✗ | TensorStore C++ (zarr driver) |
 | `adios2` | ❌ N/A | — | ✗ | ✗ | ✗ | ✗ | ADIOS2 BP (no library) |

@@ -110,7 +110,6 @@ void Hdf5Format::read_slice(const std::string& path, float* slice_buf,
 
     // Define hyperslab selection: select one inline (iy) from the 3D dataset
     // Dataset layout: (ny, nz, nx) — select iy-th inline
-    const hsize_t slice_elements = static_cast<hsize_t>(shape.nx * shape.nz);
     hsize_t file_start[3] = {static_cast<hsize_t>(iy), 0, 0};
     hsize_t file_count[3] = {1, static_cast<hsize_t>(shape.nz), static_cast<hsize_t>(shape.nx)};
     H5Sselect_hyperslab(file_space, H5S_SELECT_SET, file_start, nullptr, file_count, nullptr);

@@ -195,10 +195,11 @@ public:
                     const ArrayShape& shape, std::size_t iy) override;
 };
 
-/// MiniSEED format (seismological time series via libmseed C API)
+/// MiniSEED format (seismological time series)
+/// Native C++ via libmseed when available, Python/obspy bridge fallback
 class MiniSeedFormat : public FormatAdapter {
 public:
-    [[nodiscard]] std::string name() const override { return "miniseed"; }
+    [[nodiscard]] std::string name() const override;
     [[nodiscard]] bool is_available() const override;
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;

@@ -100,7 +100,6 @@ void NetcdfFormat::read_slice(const std::string& path, float* slice_buf,
     // Read one inline: start at [iy, 0, 0], count [1, nz, nx]
     size_t start[3] = {iy, 0, 0};
     size_t count[3] = {1, shape.nz, shape.nx};
-    ptrdiff_t stride[3] = {1, 1, 1};
 
     int err = nc_get_vara_float(ncid, varid, start, count, slice_buf);
     nc_close(ncid);

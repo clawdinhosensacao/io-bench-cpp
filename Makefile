@@ -144,3 +144,10 @@ TENSORSTORE_LINK := -Wl,--whole-archive $(TENSORSTORE_ALWAYSLINK_LIBS) -Wl,--no-
 
 LDFLAGS += $(TENSORSTORE_LINK)
 endif
+
+# libmseed support (MiniSEED native C++)
+LIBMSEED_EXISTS := $(shell test -f $(HDF5_PREFIX)/include/libmseed.h && echo yes)
+ifeq ($(LIBMSEED_EXISTS),yes)
+CXXFLAGS += -DHAVE_LIBMSEED -I$(HDF5_PREFIX)/include
+LDFLAGS += -L$(HDF5_PREFIX)/lib -lmseed -Wl,-rpath,$(HDF5_PREFIX)/lib -Wl,-rpath-link,$(HDF5_PREFIX)/lib
+endif
