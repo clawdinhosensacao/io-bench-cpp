@@ -398,7 +398,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Checkpoint/Restart Benchmark (" << config.nx << "×" << config.nz;
         if (config.ny > 1) { std::cout << "×" << config.ny; }
         std::cout << ", " << std::fixed << std::setprecision(1)
-                  << io_bench::ArrayShape{config.nx, config.nz, config.ny}.mb() << " MB)\n";
+                  << io_bench::ArrayShape{.nx=config.nx, .nz=config.nz, .ny=config.ny}.mb() << " MB)\n";
         std::cout << "Write → Read-back with integrity verification\n";
         std::cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
 
@@ -444,7 +444,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Compression Level Sweep (" << config.nx << "×" << config.nz;
         if (config.ny > 1) { std::cout << "×" << config.ny; }
         std::cout << ", " << std::fixed << std::setprecision(1)
-                  << io_bench::ArrayShape{config.nx, config.nz, config.ny}.mb() << " MB raw)\n";
+                  << io_bench::ArrayShape{.nx=config.nx, .nz=config.nz, .ny=config.ny}.mb() << " MB raw)\n";
         std::cout << "Testing compression levels 0 (none) through 9 (best)\n";
         std::cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
 

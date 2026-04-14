@@ -238,12 +238,14 @@ inline double throughput_mbps(double size_mb, double seconds) {
 inline double get_rss_mb() {
 #ifdef __linux__
     FILE* f = fopen("/proc/self/status", "r");
-    if (!f) { return 0.0; }
+    if (f == nullptr) { return 0.0; }
     char line[256];
     double rss_kb = 0.0;
-    while (fgets(line, sizeof(line), f)) {
+    while (fgets(line, sizeof(line), f) != nullptr) {
         if (strncmp(line, "VmRSS:", 6) == 0) {
-            sscanf(line + 6, "%lf", &rss_kb);
+            char* end = nullptr;
+            rss_kb = strtod(line + 6, &end);
+            if (end == line + 6) { rss_kb = 0.0; }  // no conversion
             break;
         }
     }

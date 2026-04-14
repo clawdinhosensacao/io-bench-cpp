@@ -191,7 +191,7 @@ void SegyFormat::read_trace(const std::string& path, float* trace_buf,
     // Calculate byte offset to the requested trace
     // File layout: text_header + binary_header + [trace_header + trace_data] * num_traces
     const std::size_t trace_offset = TEXT_HEADER_SIZE + BINARY_HEADER_SIZE +
-                                     (trace_idx * (TRACE_HEADER_SIZE + shape.nz * sizeof(float)));
+                                     (trace_idx * (TRACE_HEADER_SIZE + (shape.nz * sizeof(float))));
 
     in.seekg(static_cast<std::streamsize>(trace_offset), std::ios::beg);
 

@@ -154,7 +154,7 @@ void SegDFormat::read_trace(const std::string& path, float* trace_buf,
     const uint16_t num_samples = read_be_u16(reinterpret_cast<const uint8_t*>(&gh.num_samples));
 
     const auto trace_offset = static_cast<std::size_t>(
-        sizeof(gh) + (trace_idx * (sizeof(SegDTraceHeader) + static_cast<std::size_t>(num_samples) * sizeof(float))));
+        sizeof(gh) + (trace_idx * (sizeof(SegDTraceHeader) + (static_cast<std::size_t>(num_samples) * sizeof(float)))));
     f.seekg(static_cast<std::streamsize>(trace_offset), std::ios::beg);
 
     SegDTraceHeader th;
