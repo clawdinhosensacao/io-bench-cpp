@@ -6,7 +6,7 @@ JSON_DIR = third_party/json
 CNPY_DIR = third_party/cnpy
 GTEST_DIR = third_party/googletest
 
-.PHONY: all clean test bench bench-fast run minimal fetch-deps install-deps-ubuntu install-deps-macos
+.PHONY: all clean test bench bench-fast run minimal fetch-deps install-deps-ubuntu install-deps-macos tidy
 
 all: build/io_bench
 
@@ -151,3 +151,24 @@ ifeq ($(LIBMSEED_EXISTS),yes)
 CXXFLAGS += -DHAVE_LIBMSEED -I$(HDF5_PREFIX)/include
 LDFLAGS += -L$(HDF5_PREFIX)/lib -lmseed -Wl,-rpath,$(HDF5_PREFIX)/lib -Wl,-rpath-link,$(HDF5_PREFIX)/lib
 endif
+
+# Clang-tidy static analysis
+TIDY_SOURCES := $(wildcard src/formats/*.cpp) src/benchmark.cpp src/report.cpp
+TIDY_DEFS := $(foreach d,HAVE_HDF5 HAVE_NETCDF HAVE_TILEDB HAVE_DUCKDB HAVE_PARQUET HAVE_ADIOS2 HAVE_LIBMSEED HAVE_TENSORSTORE_CPP,-D$(d))
+TIDY_FLAGS := -std=c++20 -I include -I third_party/json/include -I third_party/cnpy \
+              -I $(HDF5_PREFIX)/include -I $(TENSORSTORE_CPP_PREFIX)/include \
+              $(TIDY_DEFS)
+
+tidy:
+	@echo "Running clang-tidy on $(words $(TIDY_SOURCES)) source files..."
+	@found=0; \
+	for f in $(TIDY_SOURCES); do \
+		warnings=$$(clang-tidy "$$f" -- $(TIDY_FLAGS) 2>&1 | \
+			grep "warning:" | grep -v "third_party\|/home/linuxbrew\|/data/.local\|build-cmake\|non-user code\|Suppressed"); \
+		if [ -n "$$warnings" ]; then \
+			echo "=== $$f ==="; \
+			echo "$$warnings"; \
+			found=1; \
+		fi; \
+	done; \
+	if [ "$$found" -eq 0 ]; then echo "No clang-tidy warnings found."; fi
