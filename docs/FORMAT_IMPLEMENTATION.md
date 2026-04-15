@@ -8,7 +8,7 @@ This document describes the implementation of I/O format adapters in the `io-ben
 
 ## 1. Format Coverage
 
-### Current State (2026-04-11)
+### Current State (2026-04-15)
 
 | Format | Status | Implementation | Slice | Thread-safe | Trace | Stream | Compression |
 |--------|--------|----------------|-------|-------------|-------|--------|-------------|
@@ -21,19 +21,19 @@ This document describes the implementation of I/O format adapters in the `io-ben
 | segy | ✅ Always | Native C++ | ✗ | ✗ | ✓ | ✓ | ✗ |
 | npy | ✅ Always | Native C++ (cnpy) | ✗ | ✓ | ✗ | ✗ | ✗ |
 | json | ✅ Always | Native C++ (nlohmann/json) | ✗ | ✓ | ✗ | ✗ | ✗ |
-| hdf5 | ✅ Optional | Native C++ (HighFive) | ✗ | ✗ | ✗ | ✗ | ✗ |
-| netcdf | ✅ Optional | Native C++ (libnetcdf) | ✗ | ✗ | ✗ | ✗ | ✗ |
-| tiledb | ✅ Optional | Native C++ (libtiledb) | ✗ | ✗ | ✗ | ✗ | ✗ |
-| duckdb | ✅ Optional | Native C++ (libduckdb) | ✗ | ✗ | ✗ | ✗ | ✗ |
+| hdf5 | ✅ Optional | Native C++ (HighFive) | ✓ hyperslab | ✗ | ✗ | ✗ | ✗ |
+| netcdf | ✅ Optional | Native C++ (libnetcdf) | ✓ nc_get_vara | ✗ | ✗ | ✗ | ✗ |
+| tiledb | ✅ Optional | Native C++ (libtiledb) | ✓ subarray | ✗ | ✗ | ✗ | ✗ |
+| duckdb | ✅ Optional | Native C++ (libduckdb) | ✓ SQL WHERE | ✗ | ✗ | ✗ | ✗ |
 | parquet | ✅ Optional | Native C++ (Arrow/Parquet) | ✗ | ✗ | ✗ | ✗ | ✗ |
-| zarr | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | ✗ |
+| zarr | ✅ Optional | Native C++ (filesystem+JSON) | ✓ chunk-level | ✗ | ✗ | ✗ | ✗ |
 | mdio | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | ✗ |
-| miniseed | ✅ Optional | Python bridge (obspy) | ✗ | ✗ | ✗ | ✗ | ✗ |
+| miniseed | ✅ Optional | **Native C++** (libmseed) | ✗ | ✗ | ✗ | ✗ | ✓ Steim |
 | asdf | ✅ Optional | Python bridge (pyasdf) | ✗ | ✗ | ✗ | ✗ | ✗ |
-| tensorstore | ✅ Optional | **Native C++** (zarr driver) | ✓ | ✓ | ✗ | ✗ | ✓ blosc-lz4 |
+| tensorstore_cpp | ✅ Optional | **Native C++** (zarr driver) | ✓ | ✓ | ✗ | ✗ | ✓ blosc-lz4 |
 | adios2 | ❌ N/A | Not available | ✗ | ✗ | ✗ | ✗ | ✗ |
 
-**Total: 20 formats (19 working, 1 N/A)**
+**Total: 20 formats (19 working, 1 N/A)** — 10 formats support native slice reads
 
 ---
 
@@ -138,13 +138,24 @@ Key practices:
 
 ### 3.6 Zarr Format (`src/formats/zarr.cpp`)
 
-**Implementation**: Native C++ using filesystem + nlohmann/json
+**Implementation**: Native C++ using filesystem + nlohmann/json (not Python bridge)
 
 **Design**:
 - Creates Zarr v2 compatible directory structure
 - `.zarray` metadata file (JSON) with shape/chunks/dtype
-- Chunked binary files
+- Chunked binary files with chunk-level partial reads
 - No compression (raw chunks) for baseline performance
+- Native slice read via chunk-level partial read (only loads needed chunks)
+
+### 3.7 MiniSEED Format (`src/formats/miniseed.cpp`)
+
+**Implementation**: Native C++ via libmseed (replaces obspy Python bridge)
+
+**Key results**:
+- Read: ~102 MB/s (was ~0 MB/s with obspy subprocess overhead)
+- Uses libmseed `msr_read()` / `ms_write()` C API
+- Steim-1/2 compression supported natively by libmseed
+- Dual implementation: `HAVE_LIBMSEED` → native C++, else Python/obspy bridge
 
 ---
 
@@ -177,8 +188,8 @@ make bench            # Run benchmark with default grid
 ### 5.2 Test Results
 
 ```
-[==========] 57 tests from 3 test suites ran.
-[  PASSED  ] 57 tests.
+[==========] 79 tests from 3 test suites ran.
+[  PASSED  ] 79 tests.
 ```
 
 ---
@@ -207,6 +218,5 @@ make bench            # Run benchmark with default grid
 
 ### Known Limitations
 1. **DuckDB**: SQL-based storage has high overhead for bulk array data; Appender API used for writes
-2. **Zarr (Python bridge)**: No compression support in native C++ implementation
-3. **TileDB/ADIOS2**: Available but not fully tested with large datasets
-4. **Python bridge formats**: High overhead (~1 MB/s) due to subprocess spawning; TensorStore C++ native is the exception
+2. **TileDB/ADIOS2**: Available but not fully tested with large datasets
+3. **Python bridge formats** (MDIO, ASDF): High overhead (~1 MB/s) due to subprocess spawning; TensorStore C++ native and MiniSEED native are exceptions

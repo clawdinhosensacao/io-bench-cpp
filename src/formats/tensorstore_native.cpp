@@ -94,7 +94,11 @@ void TensorStoreFormat::read(const std::string& path, float* data, const ArraySh
     auto store = *open_result;
 
     // Read the entire array
+    // Suppress GCC -Wmaybe-uninitialized false positive from TensorStore internals
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     auto read_result = tensorstore::Read(store).result();
+#pragma GCC diagnostic pop
     if (!read_result.ok()) {
         throw std::runtime_error("TensorStore native: read failed: " +
                                   read_result.status().ToString());
