@@ -558,3 +558,177 @@ TEST_F(GeoFormatTest, DuckDBNotThreadSafe) {
     io_bench::DuckDBFormat format;
     EXPECT_FALSE(format.is_thread_safe());
 }
+
+// --- SEG-Y Trace Read/Stream Write ---
+// SEG-Y stores data in column-major (iz, ix) layout internally.
+// Trace ix at sample iz corresponds to data[iz * nx + ix] in the original array.
+
+TEST_F(GeoFormatTest, SegyTraceRead) {
+    io_bench::SegyFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "SEG-Y not available";
+    ASSERT_TRUE(format.supports_trace_read());
+
+    auto path = temp_dir_ / "trace_test.segy";
+    format.write(path.string(), data2d_.data(), shape2d_);
+
+    // Read trace 0: each sample iz comes from data[iz * nx + 0]
+    std::vector<float> trace_buf(shape2d_.nz);
+    format.read_trace(path.string(), trace_buf.data(), shape2d_, 0);
+
+    for (std::size_t iz = 0; iz < shape2d_.nz; ++iz) {
+        EXPECT_FLOAT_EQ(data2d_[iz * shape2d_.nx + 0], trace_buf[iz])
+            << "trace 0 mismatch at iz=" << iz;
+    }
+}
+
+TEST_F(GeoFormatTest, SegyTraceReadLast) {
+    io_bench::SegyFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "SEG-Y not available";
+
+    auto path = temp_dir_ / "trace_last.segy";
+    format.write(path.string(), data2d_.data(), shape2d_);
+
+    // Read last trace: samples come from data[iz * nx + last_trace]
+    const std::size_t last_trace = shape2d_.nx - 1;
+    std::vector<float> trace_buf(shape2d_.nz);
+    format.read_trace(path.string(), trace_buf.data(), shape2d_, last_trace);
+
+    for (std::size_t iz = 0; iz < shape2d_.nz; ++iz) {
+        EXPECT_FLOAT_EQ(data2d_[iz * shape2d_.nx + last_trace], trace_buf[iz])
+            << "last trace mismatch at iz=" << iz;
+    }
+}
+
+TEST_F(GeoFormatTest, SegyStreamWrite) {
+    io_bench::SegyFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "SEG-Y not available";
+    ASSERT_TRUE(format.supports_stream_write());
+
+    auto path = temp_dir_ / "stream_test.segy";
+
+    // Extract trace data in column-major order (matching bulk write layout)
+    for (std::size_t ix = 0; ix < shape2d_.nx; ++ix) {
+        std::vector<float> trace_data(shape2d_.nz);
+        for (std::size_t iz = 0; iz < shape2d_.nz; ++iz) {
+            trace_data[iz] = data2d_[iz * shape2d_.nx + ix];
+        }
+        format.write_trace(path.string(), trace_data.data(), shape2d_, ix);
+    }
+
+    // Read back and verify
+    std::vector<float> read_buf(shape2d_.total());
+    format.read(path.string(), read_buf.data(), shape2d_);
+
+    for (std::size_t i = 0; i < shape2d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data2d_[i], read_buf[i]) << "stream write mismatch at " << i;
+    }
+}
+
+// --- SEG-D Trace Read ---
+
+TEST_F(GeoFormatTest, SegdTraceRead) {
+    io_bench::SegDFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "SEG-D not available";
+    ASSERT_TRUE(format.supports_trace_read());
+
+    auto path = temp_dir_ / "trace_test.segd";
+    format.write(path.string(), data2d_.data(), shape2d_);
+
+    // SEG-D traces: trace it has nx samples from data[it * nx]
+    std::vector<float> trace_buf(shape2d_.nx);
+    format.read_trace(path.string(), trace_buf.data(), shape2d_, 0);
+
+    for (std::size_t ix = 0; ix < shape2d_.nx; ++ix) {
+        EXPECT_FLOAT_EQ(data2d_[0 * shape2d_.nx + ix], trace_buf[ix])
+            << "SEG-D trace 0 mismatch at ix=" << ix;
+    }
+}
+
+TEST_F(GeoFormatTest, SegdStreamWrite) {
+    io_bench::SegDFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "SEG-D not available";
+    ASSERT_TRUE(format.supports_stream_write());
+
+    auto path = temp_dir_ / "stream_test.segd";
+
+    // SEG-D stores traces as (it * nx) samples each — row-major per trace
+    // Number of traces = nz, samples per trace = nx
+    for (std::size_t it = 0; it < shape2d_.nz; ++it) {
+        const float* trace_data = data2d_.data() + it * shape2d_.nx;
+        format.write_trace(path.string(), trace_data, shape2d_, it);
+    }
+
+    // Read back and verify
+    std::vector<float> read_buf(shape2d_.total());
+    format.read(path.string(), read_buf.data(), shape2d_);
+
+    for (std::size_t i = 0; i < shape2d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data2d_[i], read_buf[i]) << "SEG-D stream write mismatch at " << i;
+    }
+}
+
+// --- TensorStore 3D Round-Trip ---
+
+TEST_F(GeoFormatTest, TensorStoreWriteRead3D) {
+    io_bench::TensorStoreFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "TensorStore not available";
+
+    auto path = temp_dir_ / "test3d.tstore";
+    format.write(path.string(), data3d_.data(), shape3d_);
+    format.read(path.string(), read3d_.data(), shape3d_);
+
+    for (std::size_t i = 0; i < shape3d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data3d_[i], read3d_[i]) << "3D mismatch at index " << i;
+    }
+}
+
+// --- MiniSEED Write/Read Round-Trip ---
+
+TEST_F(GeoFormatTest, MiniSeedWriteRead) {
+    io_bench::MiniSeedFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "MiniSEED not available";
+
+    auto path = temp_dir_ / "test.mseed";
+    format.write(path.string(), data2d_.data(), shape2d_);
+    format.read(path.string(), read2d_.data(), shape2d_);
+
+    for (std::size_t i = 0; i < shape2d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data2d_[i], read2d_[i]) << "mismatch at index " << i;
+    }
+}
+
+// --- Direct I/O Slice Read ---
+
+TEST_F(GeoFormatTest, DirectIOSliceRead) {
+    io_bench::DirectIOFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "Direct I/O not available";
+    ASSERT_TRUE(format.supports_slice_read());
+
+    auto path = temp_dir_ / "slice_test.dio";
+    format.write(path.string(), data3d_.data(), shape3d_);
+
+    const std::size_t iy = 1;
+    const std::size_t slice_elements = shape3d_.nx * shape3d_.nz;
+    std::vector<float> slice_buf(slice_elements);
+    format.read_slice(path.string(), slice_buf.data(), shape3d_, iy);
+
+    const float* expected = data3d_.data() + iy * slice_elements;
+    for (std::size_t i = 0; i < slice_elements; ++i) {
+        EXPECT_FLOAT_EQ(expected[i], slice_buf[i]) << "DIO slice mismatch at " << i;
+    }
+}
+
+// --- SEG-Y 3D Round-Trip ---
+
+TEST_F(GeoFormatTest, SegyWriteRead3D) {
+    io_bench::SegyFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "SEG-Y not available";
+
+    auto path = temp_dir_ / "test3d.segy";
+    format.write(path.string(), data3d_.data(), shape3d_);
+    format.read(path.string(), read3d_.data(), shape3d_);
+
+    for (std::size_t i = 0; i < shape3d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data3d_[i], read3d_[i]) << "3D mismatch at index " << i;
+    }
+}
