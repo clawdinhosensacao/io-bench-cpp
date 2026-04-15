@@ -31,8 +31,9 @@ void Hdf5Format::write(const std::string& path, const float* data, const ArraySh
         dataspace = H5Screate_simple(2, dims, nullptr);
     }
     
+    // NOLINTNEXTLINE(readability-simplify-boolean-expr)
     hid_t dataset = H5Dcreate2(file, "/velocity", H5T_NATIVE_FLOAT, dataspace,
-                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);  // NOLINT(readability-simplify-boolean-expr)
+                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     
     H5Dwrite(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);  // NOLINT(readability-simplify-boolean-expr)
     
