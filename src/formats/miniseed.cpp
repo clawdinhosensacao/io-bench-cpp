@@ -74,7 +74,7 @@ void MiniSeedFormat::read(const std::string& path, float* data, const ArrayShape
             mstl3_convertsamples(seg, 'f', 0);
 
             // Copy data
-            const float* seg_data = static_cast<const float*>(seg->datasamples);
+            const auto* seg_data = static_cast<const float*>(seg->datasamples);
             for (int64_t i = 0; i < seg->numsamples && out_idx < shape.total(); ++i) {
                 data[out_idx++] = seg_data[i];
             }

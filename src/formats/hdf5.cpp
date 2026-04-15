@@ -32,9 +32,9 @@ void Hdf5Format::write(const std::string& path, const float* data, const ArraySh
     }
     
     hid_t dataset = H5Dcreate2(file, "/velocity", H5T_NATIVE_FLOAT, dataspace,
-                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);  // NOLINT(readability-simplify-boolean-expr)
     
-    H5Dwrite(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+    H5Dwrite(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);  // NOLINT(readability-simplify-boolean-expr)
     
     H5Dclose(dataset);
     H5Sclose(dataspace);
@@ -68,7 +68,7 @@ void Hdf5Format::read(const std::string& path, float* data, const ArrayShape& sh
     bool shape_ok = false;
     if (shape.is_3d() && ndims == 3) {
         shape_ok = (dims[0] == shape.ny && dims[1] == shape.nz && dims[2] == shape.nx);
-    } else if (!shape.is_3d() && ndims == 2) {
+    } else if (ndims == 2) {
         shape_ok = (dims[0] == shape.nz && dims[1] == shape.nx);
     }
     
@@ -79,7 +79,7 @@ void Hdf5Format::read(const std::string& path, float* data, const ArrayShape& sh
         throw std::runtime_error("HDF5 dataset shape mismatch");
     }
     
-    H5Dread(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+    H5Dread(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);  // NOLINT(readability-simplify-boolean-expr)
     
     H5Sclose(dataspace);
     H5Dclose(dataset);
@@ -118,7 +118,7 @@ void Hdf5Format::read_slice(const std::string& path, float* slice_buf,
     hsize_t mem_dims[2] = {static_cast<hsize_t>(shape.nz), static_cast<hsize_t>(shape.nx)};
     hid_t mem_space = H5Screate_simple(2, mem_dims, nullptr);
 
-    H5Dread(dataset, H5T_NATIVE_FLOAT, mem_space, file_space, H5P_DEFAULT, slice_buf);
+    H5Dread(dataset, H5T_NATIVE_FLOAT, mem_space, file_space, H5P_DEFAULT, slice_buf);  // NOLINT(readability-simplify-boolean-expr)
 
     H5Sclose(mem_space);
     H5Sclose(file_space);

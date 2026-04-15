@@ -22,7 +22,9 @@ void NetcdfFormat::write(const std::string& path, const float* data, const Array
         throw std::runtime_error("Failed to create NetCDF file: " + path);
     }
     
-    int z_dimid, x_dimid, y_dimid;
+    int z_dimid;
+    int x_dimid;
+    int y_dimid;
     nc_def_dim(ncid, "z", shape.nz, &z_dimid);
     nc_def_dim(ncid, "x", shape.nx, &x_dimid);
     
@@ -49,7 +51,8 @@ void NetcdfFormat::write(const std::string& path, const float* data, const Array
 
 void NetcdfFormat::read(const std::string& path, float* data, const ArrayShape& shape) {
 #ifdef HAVE_NETCDF
-    int ncid, varid;
+    int ncid;
+    int varid;
     
     if (nc_open(path.c_str(), NC_NOWRITE, &ncid) != NC_NOERR) {
         throw std::runtime_error("Failed to open NetCDF file: " + path);
@@ -63,7 +66,9 @@ void NetcdfFormat::read(const std::string& path, float* data, const ArrayShape& 
     int dimids[3];
     nc_inq_vardimid(ncid, varid, dimids);
     
-    size_t z_len, x_len, y_len = 1;
+    size_t z_len = 0;
+    size_t x_len = 0;
+    size_t y_len = 1;
     nc_inq_dimlen(ncid, dimids[ndims - 2], &z_len);
     nc_inq_dimlen(ncid, dimids[ndims - 1], &x_len);
     if (ndims == 3) {
@@ -88,7 +93,8 @@ void NetcdfFormat::read(const std::string& path, float* data, const ArrayShape& 
 void NetcdfFormat::read_slice(const std::string& path, float* slice_buf,
                                 const ArrayShape& shape, std::size_t iy) {
 #ifdef HAVE_NETCDF
-    int ncid, varid;
+    int ncid;
+    int varid;
 
     if (nc_open(path.c_str(), NC_NOWRITE, &ncid) != NC_NOERR) {
         throw std::runtime_error("Failed to open NetCDF file: " + path);

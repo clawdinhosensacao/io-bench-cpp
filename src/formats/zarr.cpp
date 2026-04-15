@@ -252,9 +252,9 @@ void ZarrFormat::read_slice(const std::string& path, float* slice_buf,
                     std::size_t chunk_idx = (iz * actual_ny * actual_nx) + (local_iy * actual_nx) + ix;
 
                     // Slice buffer layout: (iz, ix) — row-major
-                    std::size_t slice_idx = global_z * shape.nx + global_x;
+                    std::size_t slice_idx = (global_z * shape.nx) + global_x;
 
-                    if (local_iy < actual_ny && slice_idx < shape.nx * shape.nz) {
+                    if (local_iy < actual_ny && slice_idx < (shape.nx * shape.nz)) {
                         slice_buf[slice_idx] = chunk_data[chunk_idx];
                     }
                 }

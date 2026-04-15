@@ -76,11 +76,11 @@ void TileDBFormat::write(const std::string& path, const float* data, const Array
     tiledb_subarray_alloc(ctx, array, &subarray);
 
     int64_t y_start = 0;
-    int64_t y_end = static_cast<int64_t>(shape.ny - 1);
+    auto y_end = static_cast<int64_t>(shape.ny - 1);
     int64_t z_start = 0;
-    int64_t z_end = static_cast<int64_t>(shape.nz - 1);
+    auto z_end = static_cast<int64_t>(shape.nz - 1);
     int64_t x_start = 0;
-    int64_t x_end = static_cast<int64_t>(shape.nx - 1);
+    auto x_end = static_cast<int64_t>(shape.nx - 1);
 
     int dim_idx = 0;
     if (shape.is_3d()) {
@@ -142,11 +142,11 @@ void TileDBFormat::read(const std::string& path, float* data, const ArrayShape& 
     tiledb_subarray_alloc(ctx, array, &subarray);
 
     int64_t y_start = 0;
-    int64_t y_end = static_cast<int64_t>(shape.ny - 1);
+    auto y_end = static_cast<int64_t>(shape.ny - 1);
     int64_t z_start = 0;
-    int64_t z_end = static_cast<int64_t>(shape.nz - 1);
+    auto z_end = static_cast<int64_t>(shape.nz - 1);
     int64_t x_start = 0;
-    int64_t x_end = static_cast<int64_t>(shape.nx - 1);
+    auto x_end = static_cast<int64_t>(shape.nx - 1);
 
     int dim_idx = 0;
     if (shape.is_3d()) {
@@ -203,11 +203,11 @@ void TileDBFormat::read_slice(const std::string& path, float* slice_buf,
     tiledb_subarray_t* subarray = nullptr;
     tiledb_subarray_alloc(ctx, array, &subarray);
 
-    int64_t iy_val = static_cast<int64_t>(iy);
+    auto iy_val = static_cast<int64_t>(iy);
     int64_t z_start = 0;
-    int64_t z_end = static_cast<int64_t>(shape.nz - 1);
+    auto z_end = static_cast<int64_t>(shape.nz - 1);
     int64_t x_start = 0;
-    int64_t x_end = static_cast<int64_t>(shape.nx - 1);
+    auto x_end = static_cast<int64_t>(shape.nx - 1);
 
     // Dimension 0 = y, Dimension 1 = z, Dimension 2 = x
     tiledb_subarray_add_range(ctx, subarray, 0, &iy_val, &iy_val, nullptr);

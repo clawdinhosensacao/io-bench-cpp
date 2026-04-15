@@ -49,7 +49,7 @@ void DuckDBFormat::write(const std::string& path, const float* data, const Array
     status = duckdb_query(conn, create_sql.str().c_str(), &result);
     if (status != DuckDBSuccess) {
         const char* err = duckdb_result_error(&result);
-        std::string msg = err ? err : "unknown error";
+        std::string msg = (err != nullptr) ? err : "unknown error";
         duckdb_destroy_result(&result);
         duckdb_disconnect(&conn);
         duckdb_close(&db);
@@ -71,9 +71,9 @@ void DuckDBFormat::write(const std::string& path, const float* data, const Array
             for (std::size_t ix = 0; ix < shape.nx; ++ix) {
                 std::size_t idx;
                 if (shape.is_3d()) {
-                    idx = iz * shape.ny * shape.nx + iy * shape.nx + ix;
+                    idx = (iz * shape.ny * shape.nx) + (iy * shape.nx) + ix;
                 } else {
-                    idx = iz * shape.nx + ix;
+                    idx = (iz * shape.nx) + ix;
                 }
 
                 duckdb_append_int32(appender, static_cast<int32_t>(ix));
@@ -133,7 +133,7 @@ void DuckDBFormat::read(const std::string& path, float* data, const ArrayShape& 
     } else {
         status = duckdb_open(path.c_str(), &db);
     }
-    if (config) { duckdb_destroy_config(&config); }
+    if (config != nullptr) { duckdb_destroy_config(&config); }
     if (status != DuckDBSuccess || db == nullptr) {
         throw std::runtime_error("DuckDB: Failed to open database: " + path);
     }
@@ -151,7 +151,7 @@ void DuckDBFormat::read(const std::string& path, float* data, const ArrayShape& 
     status = duckdb_query(conn, select_sql.c_str(), &result);
     if (status != DuckDBSuccess) {
         const char* err = duckdb_result_error(&result);
-        std::string msg = err ? err : "unknown error";
+        std::string msg = (err != nullptr) ? err : "unknown error";
         duckdb_destroy_result(&result);
         duckdb_disconnect(&conn);
         duckdb_close(&db);
@@ -207,7 +207,7 @@ void DuckDBFormat::read_slice(const std::string& path, float* slice_buf,
     } else {
         status = duckdb_open(path.c_str(), &db);
     }
-    if (config) { duckdb_destroy_config(&config); }
+    if (config != nullptr) { duckdb_destroy_config(&config); }
     if (status != DuckDBSuccess || db == nullptr) {
         throw std::runtime_error("DuckDB: Failed to open database: " + path);
     }
@@ -227,7 +227,7 @@ void DuckDBFormat::read_slice(const std::string& path, float* slice_buf,
     status = duckdb_query(conn, sql.str().c_str(), &result);
     if (status != DuckDBSuccess) {
         const char* err = duckdb_result_error(&result);
-        std::string msg = err ? err : "unknown error";
+        std::string msg = (err != nullptr) ? err : "unknown error";
         duckdb_destroy_result(&result);
         duckdb_disconnect(&conn);
         duckdb_close(&db);
@@ -248,7 +248,7 @@ void DuckDBFormat::read_slice(const std::string& path, float* slice_buf,
         auto iz_val = static_cast<std::size_t>(duckdb_value_int32(&result, 0, static_cast<idx_t>(i)));
         auto ix_val = static_cast<std::size_t>(duckdb_value_int32(&result, 1, static_cast<idx_t>(i)));
         double val = duckdb_value_double(&result, 2, static_cast<idx_t>(i));
-        std::size_t out_idx = iz_val * shape.nx + ix_val;
+        std::size_t out_idx = (iz_val * shape.nx) + ix_val;
         slice_buf[out_idx] = static_cast<float>(val);
     }
 
