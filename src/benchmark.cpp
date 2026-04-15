@@ -363,10 +363,10 @@ SliceReadResult BenchmarkRunner::run_slice_read(FormatAdapter& adapter) {
             // Try both common memory layouts:
             // Layout A: (iy, iz, ix) — inline contiguous (binary, mmap, RSF)
             // Layout B: (iz, iy, ix) — depth-first (HDF5, NetCDF, DuckDB, TileDB)
-            float expected_a = full_buf[verify_iy * slice_elements + i];
+            float expected_a = full_buf[(verify_iy * slice_elements) + i];
             std::size_t iz = i / shape.nx;
             std::size_t ix = i % shape.nx;
-            float expected_b = full_buf[iz * shape.ny * shape.nx + verify_iy * shape.nx + ix];
+            float expected_b = full_buf[((iz * shape.ny * shape.nx) + (verify_iy * shape.nx)) + ix];
             if (std::abs(expected_a - slice_buf[i]) > 0.001f &&
                 std::abs(expected_b - slice_buf[i]) > 0.001f) {
                 result.error = "Slice data integrity check failed";
