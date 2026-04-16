@@ -718,6 +718,101 @@ TEST_F(GeoFormatTest, DirectIOSliceRead) {
     }
 }
 
+// --- HDF5 3D Round-Trip ---
+
+TEST_F(GeoFormatTest, Hdf5WriteRead3D) {
+    io_bench::Hdf5Format format;
+    if (!format.is_available()) GTEST_SKIP() << "HDF5 not available";
+
+    auto path = temp_dir_ / "test3d.h5";
+    format.write(path.string(), data3d_.data(), shape3d_);
+    format.read(path.string(), read3d_.data(), shape3d_);
+
+    for (std::size_t i = 0; i < shape3d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data3d_[i], read3d_[i]) << "3D mismatch at index " << i;
+    }
+}
+
+// --- NetCDF 3D Round-Trip ---
+
+TEST_F(GeoFormatTest, NetcdfWriteRead3D) {
+    io_bench::NetcdfFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "NetCDF not available";
+
+    auto path = temp_dir_ / "test3d.nc";
+    format.write(path.string(), data3d_.data(), shape3d_);
+    format.read(path.string(), read3d_.data(), shape3d_);
+
+    for (std::size_t i = 0; i < shape3d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data3d_[i], read3d_[i]) << "3D mismatch at index " << i;
+    }
+}
+
+// --- TileDB 3D Round-Trip ---
+
+TEST_F(GeoFormatTest, TileDBWriteRead3D) {
+    io_bench::TileDBFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "TileDB not available";
+
+    auto path = temp_dir_ / "test3d.tiledb";
+    format.write(path.string(), data3d_.data(), shape3d_);
+    format.read(path.string(), read3d_.data(), shape3d_);
+
+    for (std::size_t i = 0; i < shape3d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data3d_[i], read3d_[i]) << "3D mismatch at index " << i;
+    }
+}
+
+// --- Zarr 3D Round-Trip ---
+
+TEST_F(GeoFormatTest, ZarrWriteRead3D) {
+    io_bench::ZarrFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "Zarr not available";
+
+    auto path = temp_dir_ / "test3d.zarr";
+    format.write(path.string(), data3d_.data(), shape3d_);
+    format.read(path.string(), read3d_.data(), shape3d_);
+
+    for (std::size_t i = 0; i < shape3d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data3d_[i], read3d_[i]) << "3D mismatch at index " << i;
+    }
+}
+
+// --- NPY 3D Round-Trip ---
+
+TEST_F(GeoFormatTest, NpyWriteRead3D) {
+    io_bench::NpyFormat format;
+    ASSERT_TRUE(format.is_available());
+
+    auto path = temp_dir_ / "test3d.npy";
+    format.write(path.string(), data3d_.data(), shape3d_);
+    format.read(path.string(), read3d_.data(), shape3d_);
+
+    for (std::size_t i = 0; i < shape3d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data3d_[i], read3d_[i]) << "3D mismatch at index " << i;
+    }
+}
+
+// --- Mmap Slice Read ---
+
+TEST_F(GeoFormatTest, MmapSliceRead) {
+    io_bench::MmapFormat format;
+    ASSERT_TRUE(format.supports_slice_read());
+
+    auto path = temp_dir_ / "slice_test.mmap";
+    format.write(path.string(), data3d_.data(), shape3d_);
+
+    const std::size_t iy = 1;
+    const std::size_t slice_elements = shape3d_.nx * shape3d_.nz;
+    std::vector<float> slice_buf(slice_elements);
+    format.read_slice(path.string(), slice_buf.data(), shape3d_, iy);
+
+    const float* expected = data3d_.data() + iy * slice_elements;
+    for (std::size_t i = 0; i < slice_elements; ++i) {
+        EXPECT_FLOAT_EQ(expected[i], slice_buf[i]) << "mmap slice mismatch at " << i;
+    }
+}
+
 // --- SEG-Y 3D Round-Trip ---
 
 TEST_F(GeoFormatTest, SegyWriteRead3D) {
