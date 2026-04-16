@@ -521,9 +521,9 @@ TEST_F(GeoFormatTest, AsdfNotThreadSafe) {
     EXPECT_FALSE(format.is_thread_safe());
 }
 
-TEST_F(GeoFormatTest, Hdf5NotThreadSafe) {
+TEST_F(GeoFormatTest, Hdf5ThreadSafeRead) {
     io_bench::Hdf5Format format;
-    EXPECT_FALSE(format.is_thread_safe());
+    EXPECT_TRUE(format.is_thread_safe());  // read-only concurrent access safe
 }
 
 // --- DuckDB ---
@@ -554,9 +554,9 @@ TEST_F(GeoFormatTest, DuckDBWriteRead3D) {
     }
 }
 
-TEST_F(GeoFormatTest, DuckDBNotThreadSafe) {
+TEST_F(GeoFormatTest, DuckDBThreadSafeRead) {
     io_bench::DuckDBFormat format;
-    EXPECT_FALSE(format.is_thread_safe());
+    EXPECT_TRUE(format.is_thread_safe());  // read-only concurrent access safe
 }
 
 // --- SEG-Y Trace Read/Stream Write ---

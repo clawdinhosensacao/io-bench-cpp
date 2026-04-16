@@ -55,7 +55,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".h5"; }
-    [[nodiscard]] bool is_thread_safe() const override { return false; }
+    [[nodiscard]] bool is_thread_safe() const override { return true; }  // read-only concurrent access safe
     [[nodiscard]] bool supports_slice_read() const override { return true; }
     void read_slice(const std::string& path, float* slice_buf,
                     const ArrayShape& shape, std::size_t iy) override;
@@ -69,7 +69,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".nc"; }
-    [[nodiscard]] bool is_thread_safe() const override { return false; }
+    [[nodiscard]] bool is_thread_safe() const override { return true; }  // read-only concurrent access safe
     [[nodiscard]] bool supports_slice_read() const override { return true; }
     void read_slice(const std::string& path, float* slice_buf,
                     const ArrayShape& shape, std::size_t iy) override;
@@ -83,7 +83,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".tiledb"; }
-    [[nodiscard]] bool is_thread_safe() const override { return false; }
+    [[nodiscard]] bool is_thread_safe() const override { return true; }  // read-only concurrent access safe
     [[nodiscard]] bool supports_slice_read() const override { return true; }
     void read_slice(const std::string& path, float* slice_buf,
                     const ArrayShape& shape, std::size_t iy) override;
@@ -121,7 +121,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".zarr"; }
-    [[nodiscard]] bool is_thread_safe() const override { return false; }
+    [[nodiscard]] bool is_thread_safe() const override { return true; }  // chunk-based, read-only safe
     [[nodiscard]] bool supports_slice_read() const override { return true; }
     void read_slice(const std::string& path, float* slice_buf,
                     const ArrayShape& shape, std::size_t iy) override;
@@ -189,7 +189,7 @@ public:
     void write(const std::string& path, const float* data, const ArrayShape& shape) override;
     void read(const std::string& path, float* data, const ArrayShape& shape) override;
     [[nodiscard]] std::string extension() const override { return ".duckdb"; }
-    [[nodiscard]] bool is_thread_safe() const override { return false; }
+    [[nodiscard]] bool is_thread_safe() const override { return true; }  // read-only concurrent access safe
     [[nodiscard]] bool supports_slice_read() const override { return true; }
     void read_slice(const std::string& path, float* slice_buf,
                     const ArrayShape& shape, std::size_t iy) override;

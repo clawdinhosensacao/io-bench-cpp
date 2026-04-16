@@ -21,12 +21,12 @@ This document describes the implementation of I/O format adapters in the `io-ben
 | segy | ✅ Always | Native C++ | ✗ | ✗ | ✓ | ✓ | ✗ |
 | npy | ✅ Always | Native C++ (cnpy) | ✗ | ✓ | ✗ | ✗ | ✗ |
 | json | ✅ Always | Native C++ (nlohmann/json) | ✗ | ✓ | ✗ | ✗ | ✗ |
-| hdf5 | ✅ Optional | Native C++ (HighFive) | ✓ hyperslab | ✗ | ✗ | ✗ | ✗ |
-| netcdf | ✅ Optional | Native C++ (libnetcdf) | ✓ nc_get_vara | ✗ | ✗ | ✗ | ✗ |
-| tiledb | ✅ Optional | Native C++ (libtiledb) | ✓ subarray | ✗ | ✗ | ✗ | ✗ |
-| duckdb | ✅ Optional | Native C++ (libduckdb) | ✓ SQL WHERE | ✗ | ✗ | ✗ | ✗ |
+| hdf5 | ✅ Optional | Native C++ (HighFive) | ✓ hyperslab | ✓ read-only | ✗ | ✗ | ✗ |
+| netcdf | ✅ Optional | Native C++ (libnetcdf) | ✓ nc_get_vara | ✓ read-only | ✗ | ✗ | ✗ |
+| tiledb | ✅ Optional | Native C++ (libtiledb) | ✓ subarray | ✓ read-only | ✗ | ✗ | ✗ |
+| duckdb | ✅ Optional | Native C++ (libduckdb) | ✓ SQL WHERE | ✓ read-only | ✗ | ✗ | ✗ |
 | parquet | ✅ Optional | Native C++ (Arrow/Parquet) | ✗ | ✗ | ✗ | ✗ | ✗ |
-| zarr | ✅ Optional | Native C++ (filesystem+JSON) | ✓ chunk-level | ✗ | ✗ | ✗ | ✗ |
+| zarr | ✅ Optional | Native C++ (filesystem+JSON) | ✓ chunk-level | ✓ read-only | ✗ | ✗ | ✗ |
 | mdio | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | ✗ |
 | miniseed | ✅ Optional | **Native C++** (libmseed) | ✗ | ✗ | ✗ | ✗ | ✓ Steim |
 | asdf | ✅ Optional | Python bridge (pyasdf) | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -34,6 +34,12 @@ This document describes the implementation of I/O format adapters in the `io-ben
 | adios2 | ❌ N/A | Not available | ✗ | ✗ | ✗ | ✗ | ✗ |
 
 **Total: 20 formats (19 working, 1 N/A)** — 10 formats support native slice reads
+
+**Thread-safety note**: Read-only concurrent access is safe for all native C++ formats
+that open files in read mode (HDF5, NetCDF, TileDB, DuckDB, Zarr, TensorStore, mmap,
+binary, RSF). The kernel guarantees thread-safety for concurrent `read()` calls on the
+same file descriptor. Multi-process safety over BeeGFS/Lustre depends on the parallel
+filesystem's consistency guarantees — see Section 7 (Future Work).
 
 ---
 
