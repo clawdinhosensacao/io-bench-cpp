@@ -2,30 +2,32 @@
 
 A comprehensive I/O format benchmark for scientific computing arrays, implemented entirely in C++20. Focused on **geophysics and seismic processing** workloads with **direct access**, **parallel I/O**, and **chunked slice reads**.
 
-## Supported Formats (20 formats)
+## Supported Formats (19 working + 1 N/A)
 
-| Format | Status | Type | Slice | Thread-safe | Trace | Stream | Description |
-|--------|--------|------|-------|-------------|-------|--------|-------------|
-| `binary_f32` | ✅ Always | Native C++ | ✓ | ✓ | ✗ | ✗ | Raw float32, no header |
-| `binary_header` | ✅ Always | Native C++ | ✗ | ✓ | ✗ | ✗ | Float32 with shape header |
-| `mmap` | ✅ Always | Native C++ | ✓ | ✓ | ✗ | ✗ | Memory-mapped binary (POSIX) |
-| `direct_io` | ✅ Linux | Native C++ | ✓ | ✓ | ✗ | ✗ | O_DIRECT — bypass page cache |
-| `rsf` | ✅ Always | Native C++ | ✓ | ✓ | ✗ | ✗ | Madagascar Regularly Sampled Format |
-| `segd` | ✅ Always | Native C++ | ✗ | ✓ | ✓ | ✓ | SEG-D field recording format |
-| `segy` | ✅ Always | Native C++ | ✗ | ✗ | ✓ | ✓ | SEG-Y seismic format |
-| `npy` | ✅ Always | Native C++ | ✗ | ✓ | ✗ | ✗ | NumPy native format via cnpy |
-| `json` | ✅ Always | Native C++ | ✗ | ✓ | ✗ | ✗ | JSON 2D array (nlohmann/json) |
-| `hdf5` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | HDF5 via HighFive |
-| `netcdf` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | NetCDF4 C++ |
-| `parquet` | ✅ Optional | Native C++ | ✗ | ✗ | ✗ | ✗ | Apache Parquet via Arrow |
-| `tiledb` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | TileDB dense array |
-| `zarr` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | Zarr v2 via native chunked binary + JSON |
-| `duckdb` | ✅ Optional | Native C++ | ✓ | ✗ | ✗ | ✗ | DuckDB columnar SQL engine |
-| `mdio` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | MDIO for seismic |
-| `miniseed` | ✅ Optional | Native C++ | ✗ | ✗ | ✗ | ✗ | MiniSEED via libmseed |
-| `asdf` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | ASDF via pyasdf |
-| `tensorstore` | ✅ Optional | Native C++ | ✓ | ✓ | ✗ | ✗ | TensorStore C++ (zarr driver) |
-| `adios2` | ❌ N/A | — | ✗ | ✗ | ✗ | ✗ | ADIOS2 BP (no library) |
+> **Thread-safety**: "✓ read-only" means concurrent reads are safe (kernel guarantees thread-safety for `read()` on the same fd). Multi-process safety over parallel filesystems (BeeGFS/Lustre) depends on the filesystem's consistency guarantees.
+
+| Format | Status | Type | Slice | Thread-safe | Trace | Stream | Compress | Description |
+|--------|--------|------|-------|-------------|-------|--------|----------|-------------|
+| `binary_f32` | ✅ Always | Native C++ | ✓ | ✓ | ✗ | ✗ | ✗ | Raw float32, no header |
+| `binary_header` | ✅ Always | Native C++ | ✗ | ✓ | ✗ | ✗ | ✗ | Float32 with shape header |
+| `mmap` | ✅ Always | Native C++ | ✓ | ✓ | ✗ | ✗ | ✗ | Memory-mapped binary (POSIX) |
+| `direct_io` | ✅ Linux | Native C++ | ✓ | ✓ | ✗ | ✗ | ✗ | O_DIRECT — bypass page cache |
+| `rsf` | ✅ Always | Native C++ | ✓ | ✓ | ✗ | ✗ | ✗ | Madagascar Regularly Sampled Format |
+| `segd` | ✅ Always | Native C++ | ✗ | ✓ | ✓ | ✓ | ✗ | SEG-D field recording format |
+| `segy` | ✅ Always | Native C++ | ✗ | ✗ | ✓ | ✓ | ✗ | SEG-Y seismic format |
+| `npy` | ✅ Always | Native C++ | ✗ | ✓ | ✗ | ✗ | ✗ | NumPy native format via cnpy |
+| `json` | ✅ Always | Native C++ | ✗ | ✓ | ✗ | ✗ | ✗ | JSON 2D array (nlohmann/json) |
+| `hdf5` | ✅ Optional | Native C++ | ✓ | ✓ read-only | ✗ | ✗ | ✓ gzip | HDF5 via HighFive |
+| `netcdf` | ✅ Optional | Native C++ | ✓ | ✓ read-only | ✗ | ✗ | ✓ zlib | NetCDF4 C++ |
+| `parquet` | ✅ Optional | Native C++ | ✗ | ✗ | ✗ | ✗ | ✓ snappy | Apache Parquet via Arrow |
+| `tiledb` | ✅ Optional | Native C++ | ✓ | ✓ read-only | ✗ | ✗ | ✓ zstd | TileDB dense array |
+| `zarr` | ✅ Optional | Native C++ | ✓ | ✓ read-only | ✗ | ✗ | ✓ blosc | Zarr v2 via native chunked binary + JSON |
+| `duckdb` | ✅ Optional | Native C++ | ✓ | ✓ read-only | ✗ | ✗ | ✗ | DuckDB columnar SQL engine |
+| `mdio` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | ✓ blosc | MDIO for seismic |
+| `miniseed` | ✅ Optional | Native C++ | ✗ | ✗ | ✗ | ✗ | ✓ Steim | MiniSEED via libmseed |
+| `asdf` | ✅ Optional | Python bridge | ✗ | ✗ | ✗ | ✗ | ✗ | ASDF via pyasdf |
+| `tensorstore_cpp` | ✅ Optional | Native C++ | ✓ | ✓ | ✗ | ✗ | ✓ blosc | TensorStore C++ native (zarr driver) |
+| `adios2` | ❌ N/A | — | ✗ | ✗ | ✗ | ✗ | ✗ | ADIOS2 BP (no library) |
 
 ## Geophysics Presets
 
