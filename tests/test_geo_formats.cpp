@@ -682,6 +682,34 @@ TEST_F(GeoFormatTest, TensorStoreWriteRead3D) {
     }
 }
 
+// --- TensorStore Slice Read ---
+
+TEST_F(GeoFormatTest, TensorStoreSliceRead) {
+    io_bench::TensorStoreFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "TensorStore not available";
+    ASSERT_TRUE(format.supports_slice_read());
+
+    auto path = temp_dir_ / "slice_test.tstore";
+    format.write(path.string(), data3d_.data(), shape3d_);
+
+    // Slice read — uses base class fallback
+    const std::size_t iy = 1;
+    const std::size_t slice_elements = shape3d_.nx * shape3d_.nz;
+    std::vector<float> slice_buf(slice_elements);
+    format.read_slice(path.string(), slice_buf.data(), shape3d_, iy);
+
+    // Base class fallback reads full volume then extracts at iy offset.
+    // Data3d_ layout is (iz, iy, ix); fallback extracts contiguous iy-slice
+    // which corresponds to full_buf[iy * slice_elements .. (iy+1) * slice_elements]
+    std::vector<float> full_buf(shape3d_.total());
+    format.read(path.string(), full_buf.data(), shape3d_);
+
+    for (std::size_t i = 0; i < slice_elements; ++i) {
+        EXPECT_FLOAT_EQ(full_buf[iy * slice_elements + i], slice_buf[i])
+            << "TensorStore slice mismatch at " << i;
+    }
+}
+
 // --- MiniSEED Write/Read Round-Trip ---
 
 TEST_F(GeoFormatTest, MiniSeedWriteRead) {
@@ -790,6 +818,24 @@ TEST_F(GeoFormatTest, NpyWriteRead3D) {
 
     for (std::size_t i = 0; i < shape3d_.total(); ++i) {
         EXPECT_FLOAT_EQ(data3d_[i], read3d_[i]) << "3D mismatch at index " << i;
+    }
+}
+
+// --- Binary Checkpoint Round-Trip ---
+
+TEST_F(GeoFormatTest, BinaryCheckpointRoundTrip) {
+    io_bench::BinaryFormat format;
+
+    auto path = temp_dir_ / "checkpoint.bin";
+    // Write checkpoint
+    format.write(path.string(), data3d_.data(), shape3d_);
+
+    // Read back and verify integrity
+    std::vector<float> restored(shape3d_.total());
+    format.read(path.string(), restored.data(), shape3d_);
+
+    for (std::size_t i = 0; i < shape3d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data3d_[i], restored[i]) << "checkpoint mismatch at index " << i;
     }
 }
 
