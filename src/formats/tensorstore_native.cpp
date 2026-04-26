@@ -7,6 +7,7 @@
 #include <tensorstore/open.h>
 #include <tensorstore/array.h>
 #include <tensorstore/index_space.h>
+#include <tensorstore/index_space/dim_expression.h>
 #include <tensorstore/util/result.h>
 #include <tensorstore/util/status.h>
 #include <nlohmann/json.hpp>
@@ -107,6 +108,40 @@ void TensorStoreFormat::read(const std::string& path, float* data, const ArraySh
     // Copy data to output buffer
     const auto& array = *read_result;
     std::memcpy(data, array.byte_strided_origin_pointer().get(), shape.bytes());
+}
+
+void TensorStoreFormat::read_slice(const std::string& path, float* slice_buf,
+                                     const ArrayShape& shape, std::size_t iy) {
+    // Open TensorStore for reading
+    auto open_result = tensorstore::Open({
+        {"driver", "zarr"},
+        {"kvstore", {{"driver", "file"}, {"path", path}}},
+        {"open", true},
+    }).result();
+
+    if (!open_result.ok()) {
+        throw std::runtime_error("TensorStore native: open for slice read failed: " +
+                                  open_result.status().ToString());
+    }
+
+    const auto& store = *open_result;
+
+    // Read only the iy-th inline using TensorStore's native indexing
+    // TensorStore shape is (ny, nz, nx) — slice dimension 0 to fix iy
+    auto slice_store = store | tensorstore::Dims(0).IndexSlice(static_cast<tensorstore::Index>(iy));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+    auto read_result = tensorstore::Read(slice_store).result();
+#pragma GCC diagnostic pop
+    if (!read_result.ok()) {
+        throw std::runtime_error("TensorStore native: slice read failed: " +
+                                  read_result.status().ToString());
+    }
+
+    // Result is (nz, nx) in C-order
+    const auto& array = *read_result;
+    std::memcpy(slice_buf, array.byte_strided_origin_pointer().get(),
+                shape.nx * shape.nz * sizeof(float));
 }
 
 std::string TensorStoreFormat::compressor_name() const {

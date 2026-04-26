@@ -692,21 +692,25 @@ TEST_F(GeoFormatTest, TensorStoreSliceRead) {
     auto path = temp_dir_ / "slice_test.tstore";
     format.write(path.string(), data3d_.data(), shape3d_);
 
-    // Slice read — uses base class fallback
+    // Full read to get reference data
+    std::vector<float> full_buf(shape3d_.total());
+    format.read(path.string(), full_buf.data(), shape3d_);
+
+    // Slice read — native TensorStore IndexSlice on dimension 0
     const std::size_t iy = 1;
     const std::size_t slice_elements = shape3d_.nx * shape3d_.nz;
     std::vector<float> slice_buf(slice_elements);
     format.read_slice(path.string(), slice_buf.data(), shape3d_, iy);
 
-    // Base class fallback reads full volume then extracts at iy offset.
-    // Data3d_ layout is (iz, iy, ix); fallback extracts contiguous iy-slice
-    // which corresponds to full_buf[iy * slice_elements .. (iy+1) * slice_elements]
-    std::vector<float> full_buf(shape3d_.total());
-    format.read(path.string(), full_buf.data(), shape3d_);
-
-    for (std::size_t i = 0; i < slice_elements; ++i) {
-        EXPECT_FLOAT_EQ(full_buf[iy * slice_elements + i], slice_buf[i])
-            << "TensorStore slice mismatch at " << i;
+    // TensorStore shape is (ny, nz, nx) in C-order → full_buf layout is (iy, iz, ix)
+    // Native slice read extracts iy-th inline → result is (nz, nx) in C-order
+    for (std::size_t iz = 0; iz < shape3d_.nz; ++iz) {
+        for (std::size_t ix = 0; ix < shape3d_.nx; ++ix) {
+            std::size_t full_idx = iy * shape3d_.nz * shape3d_.nx + iz * shape3d_.nx + ix;
+            std::size_t slice_idx = iz * shape3d_.nx + ix;
+            EXPECT_FLOAT_EQ(full_buf[full_idx], slice_buf[slice_idx])
+                << "mismatch at iz=" << iz << " ix=" << ix;
+        }
     }
 }
 
