@@ -714,6 +714,37 @@ TEST_F(GeoFormatTest, TensorStoreSliceRead) {
     }
 }
 
+// --- TensorStore Compression Sweep Round-Trip ---
+
+TEST_F(GeoFormatTest, TensorStoreCompressionSweep) {
+    io_bench::TensorStoreFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "TensorStore not available";
+    ASSERT_TRUE(format.supports_compression_sweep());
+    EXPECT_EQ(format.compressor_name(), "blosc-lz4");
+
+    // Write with compression level 1 and verify round-trip
+    auto path = temp_dir_ / "compress_test.tstore";
+    format.write_compressed(path.string(), data3d_.data(), shape3d_, 1);
+
+    std::vector<float> read_buf(shape3d_.total());
+    format.read(path.string(), read_buf.data(), shape3d_);
+
+    for (std::size_t i = 0; i < shape3d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data3d_[i], read_buf[i]) << "compressed mismatch at index " << i;
+    }
+
+    // Write with compression level 0 (no compression) and verify round-trip
+    auto path0 = temp_dir_ / "compress_test_l0.tstore";
+    format.write_compressed(path0.string(), data3d_.data(), shape3d_, 0);
+
+    std::vector<float> read_buf0(shape3d_.total());
+    format.read(path0.string(), read_buf0.data(), shape3d_);
+
+    for (std::size_t i = 0; i < shape3d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data3d_[i], read_buf0[i]) << "uncompressed mismatch at index " << i;
+    }
+}
+
 // --- MiniSEED Write/Read Round-Trip ---
 
 TEST_F(GeoFormatTest, MiniSeedWriteRead) {
