@@ -134,4 +134,61 @@ void Hdf5Format::read_slice(const std::string& path, float* slice_buf,
 #endif
 }
 
+void Hdf5Format::write_compressed(const std::string& path, const float* data,
+                                    const ArrayShape& shape, int level) {
+#ifdef HAVE_HDF5
+    hid_t file = H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    if (file < 0) {
+        throw std::runtime_error("Failed to create HDF5 file: " + path);
+    }
+
+    hid_t dataspace;
+    if (shape.is_3d()) {
+        hsize_t dims[3] = {shape.ny, shape.nz, shape.nx};
+        dataspace = H5Screate_simple(3, dims, nullptr);
+    } else {
+        hsize_t dims[2] = {shape.nz, shape.nx};
+        dataspace = H5Screate_simple(2, dims, nullptr);
+    }
+
+    // Create dataset creation property list with chunking and compression
+    hid_t dcpl = H5Pcreate(H5P_DATASET_CREATE);
+
+    // Set chunk dimensions (must be <= dataset dimensions)
+    if (shape.is_3d()) {
+        hsize_t chunk_dims[3] = {
+            std::min(static_cast<hsize_t>(shape.ny), static_cast<hsize_t>(64)),
+            std::min(static_cast<hsize_t>(shape.nz), static_cast<hsize_t>(64)),
+            std::min(static_cast<hsize_t>(shape.nx), static_cast<hsize_t>(64))};
+        H5Pset_chunk(dcpl, 3, chunk_dims);
+    } else {
+        hsize_t chunk_dims[2] = {
+            std::min(static_cast<hsize_t>(shape.nz), static_cast<hsize_t>(64)),
+            std::min(static_cast<hsize_t>(shape.nx), static_cast<hsize_t>(64))};
+        H5Pset_chunk(dcpl, 2, chunk_dims);
+    }
+
+    // Level 0 = no compression, 1-9 = gzip deflate
+    if (level > 0) {
+        H5Pset_deflate(dcpl, static_cast<unsigned>(level));
+    }
+
+    hid_t dataset = H5Dcreate2(file, "/velocity", H5T_NATIVE_FLOAT, dataspace,
+                                H5P_DEFAULT, dcpl, H5P_DEFAULT);
+
+    H5Dwrite(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);  // NOLINT(readability-simplify-boolean-expr)
+
+    H5Dclose(dataset);
+    H5Pclose(dcpl);
+    H5Sclose(dataspace);
+    H5Fclose(file);
+#else
+    (void)path;
+    (void)data;
+    (void)shape;
+    (void)level;
+    throw std::runtime_error("HDF5 support not compiled in");
+#endif
+}
+
 } // namespace io_bench
