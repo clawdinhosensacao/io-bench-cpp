@@ -829,6 +829,48 @@ TEST_F(GeoFormatTest, NetcdfCompressionSweep) {
     }
 }
 
+// --- TileDB Compression Sweep Round-Trip ---
+
+TEST_F(GeoFormatTest, TileDBCompressionSweep) {
+    io_bench::TileDBFormat format;
+    if (!format.is_available()) GTEST_SKIP() << "TileDB not available";
+    ASSERT_TRUE(format.supports_compression_sweep());
+    EXPECT_EQ(format.compressor_name(), "zstd");
+
+    // Write with zstd level 1 and verify round-trip
+    auto path1 = temp_dir_ / "compress_l1.tiledb";
+    format.write_compressed(path1.string(), data3d_.data(), shape3d_, 1);
+
+    std::vector<float> read_buf1(shape3d_.total());
+    format.read(path1.string(), read_buf1.data(), shape3d_);
+
+    for (std::size_t i = 0; i < shape3d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data3d_[i], read_buf1[i]) << "zstd l1 mismatch at index " << i;
+    }
+
+    // Write with zstd level 9 and verify round-trip
+    auto path9 = temp_dir_ / "compress_l9.tiledb";
+    format.write_compressed(path9.string(), data3d_.data(), shape3d_, 9);
+
+    std::vector<float> read_buf9(shape3d_.total());
+    format.read(path9.string(), read_buf9.data(), shape3d_);
+
+    for (std::size_t i = 0; i < shape3d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data3d_[i], read_buf9[i]) << "zstd l9 mismatch at index " << i;
+    }
+
+    // Level 0 = no compression filter
+    auto path0 = temp_dir_ / "compress_l0.tiledb";
+    format.write_compressed(path0.string(), data3d_.data(), shape3d_, 0);
+
+    std::vector<float> read_buf0(shape3d_.total());
+    format.read(path0.string(), read_buf0.data(), shape3d_);
+
+    for (std::size_t i = 0; i < shape3d_.total(); ++i) {
+        EXPECT_FLOAT_EQ(data3d_[i], read_buf0[i]) << "uncompressed mismatch at index " << i;
+    }
+}
+
 // --- MiniSEED Write/Read Round-Trip ---
 
 TEST_F(GeoFormatTest, MiniSeedWriteRead) {

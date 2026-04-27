@@ -95,6 +95,10 @@ public:
     [[nodiscard]] bool supports_slice_read() const override { return true; }
     void read_slice(const std::string& path, float* slice_buf,
                     const ArrayShape& shape, std::size_t iy) override;
+    [[nodiscard]] bool supports_compression_sweep() const override { return true; }
+    [[nodiscard]] std::string compressor_name() const override { return "zstd"; }
+    void write_compressed(const std::string& path, const float* data,
+                           const ArrayShape& shape, int level) override;
 };
 
 /// ADIOS2 BP format (optional)
