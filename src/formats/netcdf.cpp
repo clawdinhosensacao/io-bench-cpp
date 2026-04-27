@@ -122,4 +122,59 @@ void NetcdfFormat::read_slice(const std::string& path, float* slice_buf,
 #endif
 }
 
+void NetcdfFormat::write_compressed(const std::string& path, const float* data,
+                                      const ArrayShape& shape, int level) {
+#ifdef HAVE_NETCDF
+    int ncid;
+    if (nc_create(path.c_str(), NC_CLOBBER | NC_NETCDF4, &ncid) != NC_NOERR) {
+        throw std::runtime_error("Failed to create NetCDF4 file: " + path);
+    }
+
+    int z_dimid;
+    int x_dimid;
+    int y_dimid;
+    nc_def_dim(ncid, "z", shape.nz, &z_dimid);
+    nc_def_dim(ncid, "x", shape.nx, &x_dimid);
+
+    int varid;
+    if (shape.is_3d()) {
+        nc_def_dim(ncid, "y", shape.ny, &y_dimid);
+        int dimids[3] = {y_dimid, z_dimid, x_dimid};
+        nc_def_var(ncid, "velocity", NC_FLOAT, 3, dimids, &varid);
+    } else {
+        int dimids[2] = {z_dimid, x_dimid};
+        nc_def_var(ncid, "velocity", NC_FLOAT, 2, dimids, &varid);
+    }
+
+    // Enable chunking for compression (required for deflate)
+    if (shape.is_3d()) {
+        size_t chunksize[3] = {
+            std::min(static_cast<size_t>(shape.ny), static_cast<size_t>(64)),
+            std::min(static_cast<size_t>(shape.nz), static_cast<size_t>(64)),
+            std::min(static_cast<size_t>(shape.nx), static_cast<size_t>(64))};
+        nc_def_var_chunking(ncid, varid, NC_CHUNKED, chunksize);
+    } else {
+        size_t chunksize[2] = {
+            std::min(static_cast<size_t>(shape.nz), static_cast<size_t>(64)),
+            std::min(static_cast<size_t>(shape.nx), static_cast<size_t>(64))};
+        nc_def_var_chunking(ncid, varid, NC_CHUNKED, chunksize);
+    }
+
+    // Apply zlib compression for levels 1-9; level 0 = no compression
+    if (level > 0) {
+        nc_def_var_deflate(ncid, varid, 0, 1, static_cast<int>(level));
+    }
+
+    nc_enddef(ncid);
+    nc_put_var_float(ncid, varid, data);
+    nc_close(ncid);
+#else
+    (void)path;
+    (void)data;
+    (void)shape;
+    (void)level;
+    throw std::runtime_error("NetCDF support not compiled in");
+#endif
+}
+
 } // namespace io_bench
